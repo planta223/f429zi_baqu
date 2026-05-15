@@ -1,0 +1,55 @@
+# =========================
+# STM32CubeIDE / Eclipse
+# =========================
+.metadata/
+.settings/
+Debug/
+Release/
+*.launch
+
+# =========================
+# Build outputs
+# =========================
+*.o
+*.d
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.su
+*.cyclo
+*.gcno
+*.gcda
+*.gcov
+
+# =========================
+# Temporary / backup files
+# =========================
+*.bak
+*.tmp
+*.log
+*.old
+*.orig
+*.rej
+*~
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Editor files
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Keep important project files
+# =========================
+!.ioc
+!.project
+!.cproject
