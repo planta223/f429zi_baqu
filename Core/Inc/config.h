@@ -43,7 +43,7 @@ extern volatile uint32_t g_motor_max_freq_hz;
 #define ENCODER_COUNT_PER_REV          (ENCODER_PPR * ENCODER_QUADRATURE)
 #define ENCODER_DEG_PER_COUNT          (360.0f / ENCODER_COUNT_PER_REV)
 
-#define ENCODER_COUNT_POLARITY         1
+#define ENCODER_COUNT_POLARITY         -1
 
 #define STEERING_GEAR_RATIO            12.5f
 #define MOTOR_DEG_PER_STEERING_DEG     STEERING_GEAR_RATIO
@@ -55,7 +55,7 @@ extern volatile uint32_t g_motor_max_freq_hz;
 #define MOTOR_MIN_FREQ_HZ                 10U
 #define MOTOR_MAX_FREQ_HZ                 100000U
 
-#define MOTOR_DIR_ACTIVE_HIGH_FOR_CW      1
+#define MOTOR_DIR_ACTIVE_HIGH_FOR_CW      0
 #define MOTOR_DIRECTION_GUARD_MS          1U
 
 /* =========================================

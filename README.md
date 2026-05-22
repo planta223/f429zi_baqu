@@ -133,17 +133,9 @@ TIM2는 32-bit encoder counter로 사용합니다.
 
 ---
 
-## 주요 상수
-
-### Encoder
-
-```c
-#define ENCODER_TIMER_CENTER           2147483648UL
-#define ENCODER_COUNTER_PERIOD         4294967295UL
-
-#define ENCODER_PPR                    524288.0f
-#define ENCODER_QUADRATURE             4.0f
-#define ENCODER_COUNT_PER_REV          (ENCODER_PPR * ENCODER_QUADRATURE)
-#define ENCODER_DEG_PER_COUNT          (360.0f / ENCODER_COUNT_PER_REV)
-
-#define ENCODER_COUNT_POLARITY         1
+## 고규범 코멘트
+- 센싱 및 구동 관련 코드를 encoder.c/h motor.c/h control.c/h 에 축약 및 통합
+- 시스틱 말고 정밀 타이머 만들어야
+- 100rpm 목표
+- +-45도 조향.
+- 작년 기준 500hz 였음
