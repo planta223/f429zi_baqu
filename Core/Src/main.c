@@ -31,6 +31,7 @@
 #include "motor.h"
 #include "control.h"
 #include "config.h"
+#include "teleplot.h"
 
 /* USER CODE END Includes */
 
@@ -146,6 +147,7 @@ int main(void)
   Encoder_Reset();
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
+  Teleplot_Init();
 
   /* USER CODE END 2 */
 
@@ -170,6 +172,8 @@ int main(void)
 	        }
 
 	        Control_Update();
+
+	        Teleplot_Update(now_ms);
 	    }
 
 	    HAL_IWDG_Refresh(&hiwdg);
