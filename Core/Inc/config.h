@@ -44,7 +44,7 @@ extern volatile float g_control_output_limit_hz;
  * motor.c
  * ========================================= */
 #define MOTOR_MIN_FREQ_HZ               150U      // 현재 TIM1 PSC=17에서 실질적 저주파 하한 근처
-#define MOTOR_MAX_FREQ_HZ               100000U   // 개루프 제어 운용 상한 (MOTOR_DRIVER_MAX_FREQ_HZ 이하로 설정할 것)
+#define MOTOR_MAX_FREQ_HZ               600000U   // 개루프 제어 운용 상한 (MOTOR_DRIVER_MAX_FREQ_HZ 이하로 설정할 것)
 #define MOTOR_DIRECTION_GUARD_MS        1U        // 방향 반전시 대기시간(ms)
 
 /* =========================================
@@ -58,6 +58,6 @@ extern volatile float g_control_output_limit_hz;
 #define CONTROL_DEFAULT_KI                   0.0f       // I 게인
 #define CONTROL_DEFAULT_KD                   0.0f       // D 게인
 #define CONTROL_INTEGRAL_LIMIT               1000.0f    // 적분항 누적 제한
-#define CONTROL_OUTPUT_LIMIT_HZ              10000.0f   // 폐루프 제어 운용 상한 (MOTOR_MAX_FREQ_HZ 이하로 설정할 것)
+#define CONTROL_OUTPUT_LIMIT_HZ              600000.0f   // 폐루프 제어 운용 상한 (MOTOR_MAX_FREQ_HZ 이하로 설정할 것)
 
 #endif /* INC_CONFIG_H_ */

@@ -65,6 +65,8 @@ volatile int32_t g_test_motor_freq_hz = 0;           // 오픈루프 모터 주�
 volatile int64_t g_mon_encoder_total_count = 0;
 volatile int32_t g_mon_encoder_delta_count = 0;
 
+volatile float g_mon_steering_rpm = 0.0f;   // 조향축 회전속도 [rpm]
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,6 +85,8 @@ static void App_UpdateMonitorVariables(void)
 
     g_mon_encoder_total_count = encoder.total_count;
     g_mon_encoder_delta_count = encoder.delta_count;
+
+    g_mon_steering_rpm = encoder.steering_velocity_dps / 6.0f;
 }
 
 static void App_ProcessTestCommands(void)
