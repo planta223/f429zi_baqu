@@ -31,6 +31,7 @@
 #include "motor.h"
 #include "control.h"
 #include "config.h"
+#include "ethernet.h"
 
 /* USER CODE END Includes */
 
@@ -107,6 +108,7 @@ int main(void)
   Control_Init();
   Encoder_Reset();
   Control_Reset();
+  Ethernet_Init();
   Control_SetTargetSteeringDeg(0.0f);
   Control_Enable(); // open-loop 사용 안할시 활성화
 
@@ -121,6 +123,66 @@ int main(void)
   {
 	    uint32_t now_ms = HAL_GetTick();
 
+	    /*
+	     * LwIP polling.
+	     *
+	     * bare-metal LwIP 구조에서는 이 함수가 계속 호출되어야
+	     * UDP 수신 callback이 동작한다.
+	     */
+	    MX_LWIP_Process();
+
+	    /*
+	     * ESTOP 처리.
+	     *
+	     * ASMS ESTOP 또는 PC misc bit7 ESTOP가 들어오면
+	     * 제어기를 disable하고 PWM 출력을 정지한다.
+	     */
+	    if (Ethernet_ConsumeEmergencyRequest()) {
+	        Control_Disable();
+	        Motor_Stop();
+	    }
+
+	    /*
+	     * Ethernet 수신 명령 처리.
+	     *
+	     * ASMS MANUAL packet 또는 PC AUTO packet에서 변환된
+	     * 목표 조향각을 control target으로 반영한다.
+	     */
+	    if (Ethernet_HasNewData()) {
+	        Ethernet_Packet_t packet = Ethernet_GetLatestData();
+	        SteerMode_t mode = Ethernet_GetCurrentMode();
+
+	        if ((mode == STEER_MODE_AUTO) ||
+	            (mode == STEER_MODE_MANUAL)) {
+
+	            Control_SetTargetSteeringDeg(packet.steering_deg);
+
+	            /*
+	             * 매 packet마다 Control_Enable()을 호출하면
+	             * integral이 계속 reset될 수 있으므로,
+	             * disable 상태일 때만 enable한다.
+	             */
+	            if (Control_IsEnabled() == 0U) {
+	                Control_Enable();
+	            }
+	        }
+	    }
+
+	    /*
+	     * 통신 timeout 처리.
+	     *
+	     * 마지막 유효 수신 이후 ETHERNET_TIMEOUT_MS가 지나면
+	     * stale command를 유지하지 않고 정지한다.
+	     */
+	    if ((Ethernet_GetLastRxTick() != 0U) &&
+	        ((uint32_t)(now_ms - Ethernet_GetLastRxTick()) > ETHERNET_TIMEOUT_MS)) {
+	        Control_Disable();
+	        Motor_Stop();
+	    }
+
+	    /*
+	     * 1 ms control loop.
+	     */
 	    if ((uint32_t)(now_ms - last_control_tick_ms) >= CONTROL_PERIOD_MS) {
 	        last_control_tick_ms += CONTROL_PERIOD_MS;
 
