@@ -12,34 +12,25 @@
 
 #include <math.h>
 
-volatile float g_control_kp = CONTROL_DEFAULT_KP;
-volatile float g_control_ki = CONTROL_DEFAULT_KI;
-volatile float g_control_kd = CONTROL_DEFAULT_KD;
-volatile float g_control_integral_limit = CONTROL_INTEGRAL_LIMIT;
-volatile float g_control_output_limit_hz = CONTROL_OUTPUT_LIMIT_HZ;
-
 static Control_PID_t pid;
 static Control_State_t control;
 
 static void Control_UpdateTuningParams(void)
 {
-    pid.kp = g_control_kp;
-    pid.ki = g_control_ki;
-    pid.kd = g_control_kd;
+    pid.kp = CONTROL_DEFAULT_KP;
+    pid.ki = CONTROL_DEFAULT_KI;
+    pid.kd = CONTROL_DEFAULT_KD;
 
-    pid.integral_limit = g_control_integral_limit;
+    pid.integral_limit = CONTROL_INTEGRAL_LIMIT;
     if (pid.integral_limit < 0.0f) {
         pid.integral_limit = -pid.integral_limit;
     }
 
-    pid.output_limit = g_control_output_limit_hz;
+    pid.output_limit = CONTROL_OUTPUT_LIMIT_HZ;
     if (pid.output_limit < 0.0f) {
         pid.output_limit = -pid.output_limit;
     }
 
-    /*
-     * control 출력 제한은 motor 운용 상한을 초과하지 않도록 한 번 더 제한한다.
-     */
     if (pid.output_limit > (float)MOTOR_MAX_FREQ_HZ) {
         pid.output_limit = (float)MOTOR_MAX_FREQ_HZ;
     }
@@ -224,16 +215,6 @@ void Control_SetTargetSteeringDeg(float steering_deg)
     control.current_steering_deg = Encoder_GetSteeringDeg();
 
     control.error_motor_deg = control.target_motor_deg - control.current_motor_deg;
-}
-
-void Control_SetPID(float kp, float ki, float kd)
-{
-    g_control_kp = kp;
-    g_control_ki = ki;
-    g_control_kd = kd;
-
-    control.integral = 0.0f;
-    control.prev_error = control.error_motor_deg;
 }
 
 void Control_Update(void)

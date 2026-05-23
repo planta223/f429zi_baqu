@@ -41,7 +41,6 @@ void Control_Disable(void);
 void Control_Reset(void);
 
 void Control_SetTargetSteeringDeg(float steering_deg);
-void Control_SetPID(float kp, float ki, float kd);
 void Control_Update(void);
 
 uint8_t Control_IsEnabled(void);

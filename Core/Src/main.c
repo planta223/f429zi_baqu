@@ -53,14 +53,6 @@
 
 /* USER CODE BEGIN PV */
 
-/* Live Expressions test commands */
-volatile float   g_test_target_steering_deg = 0.0f;  // 테스트 목표 조향각 [deg]
-volatile uint8_t g_test_apply_target = 0U;           // 목표 조향각 적용 명령
-volatile uint8_t g_test_zero = 0U;                   // 현재 위치를 0점으로 재설정
-volatile uint8_t g_test_enable = 0U;                 // 폐루프 제어 활성화 명령
-volatile uint8_t g_test_stop = 0U;                   // 제어 비활성화 및 모터 정지 명령
-volatile int32_t g_test_motor_freq_hz = 0;           // 오픈루프 모터 주파수 명령 [Hz]
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,36 +63,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-static void App_ProcessTestCommands(void)
-{
-    if (g_test_stop != 0U) {
-        g_test_stop = 0U;
-        Control_Disable();
-    }
-
-    if (g_test_zero != 0U) {
-        g_test_zero = 0U;
-
-        Control_Disable();
-
-        Encoder_Reset();
-        Control_Reset();
-
-        g_test_target_steering_deg = 0.0f;
-        Control_SetTargetSteeringDeg(0.0f);
-    }
-
-    if (g_test_enable != 0U) {
-        g_test_enable = 0U;
-        Control_Enable();
-    }
-
-    if (g_test_apply_target != 0U) {
-        g_test_apply_target = 0U;
-        Control_SetTargetSteeringDeg(g_test_target_steering_deg);
-    }
-}
 
 /* USER CODE END 0 */
 
@@ -146,6 +108,7 @@ int main(void)
   Encoder_Reset();
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
+  Control_Enable(); // open-loop 사용 안할시 활성화
 
   /* USER CODE END 2 */
 
@@ -158,17 +121,10 @@ int main(void)
   {
 	    uint32_t now_ms = HAL_GetTick();
 
-	    App_ProcessTestCommands();
-
 	    if ((uint32_t)(now_ms - last_control_tick_ms) >= CONTROL_PERIOD_MS) {
 	        last_control_tick_ms += CONTROL_PERIOD_MS;
 
 	        Encoder_Update();
-
-	        if (Control_IsEnabled() == 0U) {
-	            Motor_SetFrequency(g_test_motor_freq_hz);
-	        }
-
 	        Control_Update();
 	    }
 
