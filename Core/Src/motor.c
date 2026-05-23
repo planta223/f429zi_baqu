@@ -10,9 +10,6 @@
 #include "main.h"
 #include "config.h"
 
-volatile uint32_t g_motor_min_freq_hz = MOTOR_MIN_FREQ_HZ;
-volatile uint32_t g_motor_max_freq_hz = MOTOR_MAX_FREQ_HZ;
-
 #define MOTOR_TIMER        htim1
 #define MOTOR_PWM_CHANNEL  TIM_CHANNEL_1
 
@@ -53,15 +50,13 @@ static uint8_t Motor_DeadlineExpired(uint32_t deadline_ms)
 
 static uint32_t Motor_ClampFrequency(uint32_t freq_hz)
 {
-    uint32_t min_freq = g_motor_min_freq_hz;
-    uint32_t max_freq = g_motor_max_freq_hz;
+    const uint32_t max_freq =
+        (MOTOR_MAX_FREQ_HZ > MOTOR_DRIVER_MAX_FREQ_HZ)
+        ? MOTOR_DRIVER_MAX_FREQ_HZ
+        : MOTOR_MAX_FREQ_HZ;
 
-    if (max_freq < min_freq) {
-        max_freq = min_freq;
-    }
-
-    if (freq_hz < min_freq) {
-        return min_freq;
+    if (freq_hz < MOTOR_MIN_FREQ_HZ) {
+        return MOTOR_MIN_FREQ_HZ;
     }
 
     if (freq_hz > max_freq) {
@@ -153,7 +148,7 @@ static void Motor_StartOutput(uint32_t freq_hz)
     }
 }
 
-static void Motor_StopInternal(void)
+static void Motor_StopPwmOnly(void)
 {
     HAL_TIM_PWM_Stop(motor_htim, MOTOR_PWM_CHANNEL);
 
@@ -166,7 +161,7 @@ static void Motor_BeginReverseGuard(MotorDirection_t dir, uint32_t freq_hz)
     pending_direction = dir;
     pending_freq_hz = freq_hz;
 
-    Motor_StopInternal();
+    Motor_StopPwmOnly();
 
     reverse_deadline_ms = HAL_GetTick() + MOTOR_DIRECTION_GUARD_MS;
     reverse_state = MOTOR_REVERSE_WAIT_STOP;
@@ -221,7 +216,7 @@ void Motor_Init(void)
     reverse_state = MOTOR_REVERSE_IDLE;
 
     Motor_ApplyDirection(MOTOR_DIR_CCW);
-    Motor_StopInternal();
+    Motor_StopPwmOnly();
 }
 
 void Motor_SetFrequency(int32_t freq_hz)
@@ -231,16 +226,25 @@ void Motor_SetFrequency(int32_t freq_hz)
 
     motor.requested_freq_hz = freq_hz;
 
+    /*
+     * Continue pending direction-change sequence, if any.
+     */
     Motor_ServiceReverseGuard();
 
+    /*
+     * Zero command means immediate full stop.
+     */
     if (freq_hz == 0) {
         pending_freq_hz = 0U;
         reverse_state = MOTOR_REVERSE_IDLE;
         motor.reverse_guard_active = 0U;
-        Motor_StopInternal();
+        Motor_StopPwmOnly();
         return;
     }
 
+    /*
+     * Sign of frequency determines direction.
+     */
     if (freq_hz > 0) {
         target_direction = MOTOR_DIR_CW;
         target_freq_hz = Motor_ClampFrequency((uint32_t)freq_hz);
@@ -249,17 +253,26 @@ void Motor_SetFrequency(int32_t freq_hz)
         target_freq_hz = Motor_ClampFrequency((uint32_t)(-freq_hz));
     }
 
+    /*
+     * If direction change is in progress, update pending command only.
+     */
     if (reverse_state != MOTOR_REVERSE_IDLE) {
         pending_direction = target_direction;
         pending_freq_hz = target_freq_hz;
         return;
     }
 
+    /*
+     * If direction differs, stop PWM first and change DIR after guard time.
+     */
     if (target_direction != motor.direction) {
         Motor_BeginReverseGuard(target_direction, target_freq_hz);
         return;
     }
 
+    /*
+     * Same direction: directly update/start PWM output.
+     */
     Motor_StartOutput(target_freq_hz);
 }
 
@@ -270,7 +283,7 @@ void Motor_Stop(void)
     reverse_state = MOTOR_REVERSE_IDLE;
     motor.reverse_guard_active = 0U;
 
-    Motor_StopInternal();
+    Motor_StopPwmOnly();
 }
 
 uint8_t Motor_IsOutputActive(void)

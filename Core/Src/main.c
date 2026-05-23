@@ -53,20 +53,13 @@
 
 /* USER CODE BEGIN PV */
 
-/* 1 ms control tick flag */
-volatile uint8_t g_control_tick = 0U;
-
 /* Live Expressions test commands */
-volatile float   g_test_target_steering_deg = 0.0f;
-volatile uint8_t g_test_apply_target = 0U;
-volatile uint8_t g_test_zero = 0U;
-volatile uint8_t g_test_enable = 0U;
-volatile uint8_t g_test_disable = 0U;
-volatile uint8_t g_test_stop = 0U;
-
-/* Optional open-loop motor test */
-volatile int32_t g_test_motor_freq_hz = 0;
-volatile uint8_t g_test_motor_apply = 0U;
+volatile float   g_test_target_steering_deg = 0.0f;  // 테스트 목표 조향각 [deg]
+volatile uint8_t g_test_apply_target = 0U;           // 목표 조향각 적용 명령
+volatile uint8_t g_test_zero = 0U;                   // 현재 위치를 0점으로 재설정
+volatile uint8_t g_test_enable = 0U;                 // 폐루프 제어 활성화 명령
+volatile uint8_t g_test_stop = 0U;                   // 제어 비활성화 및 모터 정지 명령
+volatile int32_t g_test_motor_freq_hz = 0;           // 오픈루프 모터 주파수 명령 [Hz]
 
 /* USER CODE END PV */
 
@@ -84,19 +77,12 @@ static void App_ProcessTestCommands(void)
     if (g_test_stop != 0U) {
         g_test_stop = 0U;
         Control_Disable();
-        Motor_Stop();
-    }
-
-    if (g_test_disable != 0U) {
-        g_test_disable = 0U;
-        Control_Disable();
     }
 
     if (g_test_zero != 0U) {
         g_test_zero = 0U;
 
         Control_Disable();
-        Motor_Stop();
 
         Encoder_Reset();
         Control_Reset();
@@ -107,23 +93,12 @@ static void App_ProcessTestCommands(void)
 
     if (g_test_enable != 0U) {
         g_test_enable = 0U;
-
         Control_Enable();
     }
 
     if (g_test_apply_target != 0U) {
         g_test_apply_target = 0U;
-
         Control_SetTargetSteeringDeg(g_test_target_steering_deg);
-    }
-
-    /*
-     * Open-loop motor test.
-     * Use this only when Control is disabled.
-     */
-    if (g_test_motor_apply != 0U) {
-        g_test_motor_apply = 0U;
-        /* open-loop frequency is applied periodically in the 1 ms loop */
     }
 }
 
@@ -168,28 +143,9 @@ int main(void)
   Encoder_Init();
   Motor_Init();
   Control_Init();
-
-  /* Current physical position becomes zero. */
   Encoder_Reset();
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
-
-  /*
-   * Initial safety tuning for first test.
-   * These can be changed in Live Expressions later.
-   */
-  g_control_kp = 5.0f;
-  g_control_ki = 0.0f;
-  g_control_kd = 0.0f;
-
-  g_control_output_limit_hz = 3000.0f;
-  g_motor_max_freq_hz = 3000U;
-
-  g_control_reached_band_motor_deg = CONTROL_REACHED_BAND_MOTOR_DEG;
-  g_control_reached_time_ms = CONTROL_REACHED_TIME_MS;
-
-  /* Do not enable closed-loop automatically at first. */
-  /* Control_Enable(); */
 
   /* USER CODE END 2 */
 

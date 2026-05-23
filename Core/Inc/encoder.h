@@ -31,12 +31,10 @@ void Encoder_Reset(void);
 int32_t Encoder_GetDeltaCount(void);
 int64_t Encoder_GetTotalCount(void);
 uint32_t Encoder_GetRawCount(void);
-
 float Encoder_GetMotorDeg(void);
 float Encoder_GetSteeringDeg(void);
 float Encoder_GetMotorVelocityDps(void);
 float Encoder_GetSteeringVelocityDps(void);
-
 uint8_t Encoder_IsInitialized(void);
 Encoder_t Encoder_GetState(void);
 

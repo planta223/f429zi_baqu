@@ -33,8 +33,6 @@ typedef struct {
 
     float integral;
     float prev_error;
-
-    uint32_t reached_time_ms;
 } Control_State_t;
 
 void Control_Init(void);
@@ -44,7 +42,6 @@ void Control_Reset(void);
 
 void Control_SetTargetSteeringDeg(float steering_deg);
 void Control_SetPID(float kp, float ki, float kd);
-
 void Control_Update(void);
 
 uint8_t Control_IsEnabled(void);

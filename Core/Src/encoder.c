@@ -10,7 +10,7 @@
 #include "tim.h"
 #include "config.h"
 
-#define ENCODER_TIMER htim2
+#define ENCODER_TIMER	htim2
 
 static Encoder_t encoder;
 
@@ -25,17 +25,23 @@ static int32_t Encoder_ApplyPolarity(int32_t count)
 
 static float Encoder_CountToMotorDeg(int64_t count)
 {
-    return (float)count * ENCODER_DEG_PER_COUNT;
+    return ((float)count * 360.0f) / ENCODER_COUNT_PER_MOTOR_REV;
 }
 
 static float Encoder_MotorDegToSteeringDeg(float motor_deg)
 {
-    return motor_deg * STEERING_DEG_PER_MOTOR_DEG;
+    return motor_deg / STEERING_GEAR_RATIO;
+}
+
+static float Encoder_CountToMotorVelocityDps(int32_t delta)
+{
+    return ((float)delta * 360.0f / ENCODER_COUNT_PER_MOTOR_REV) *
+           (1000.0f / (float)CONTROL_PERIOD_MS);
 }
 
 void Encoder_Init(void)
 {
-    __HAL_TIM_SET_COUNTER(&ENCODER_TIMER, ENCODER_TIMER_CENTER);
+    __HAL_TIM_SET_COUNTER(&ENCODER_TIMER, ENCODER_COUNTER_CENTER);
 
     if (HAL_TIM_Encoder_Start(&ENCODER_TIMER, TIM_CHANNEL_ALL) != HAL_OK) {
         encoder.raw_count = 0U;
@@ -91,10 +97,7 @@ void Encoder_Update(void)
     encoder.motor_deg = Encoder_CountToMotorDeg(encoder.total_count);
     encoder.steering_deg = Encoder_MotorDegToSteeringDeg(encoder.motor_deg);
 
-    encoder.motor_velocity_dps =
-        ((float)delta * ENCODER_DEG_PER_COUNT) *
-        (1000.0f / (float)CONTROL_PERIOD_MS);
-
+    encoder.motor_velocity_dps = Encoder_CountToMotorVelocityDps(delta);
     encoder.steering_velocity_dps =
         Encoder_MotorDegToSteeringDeg(encoder.motor_velocity_dps);
 
@@ -107,10 +110,10 @@ void Encoder_Reset(void)
         return;
     }
 
-    __HAL_TIM_SET_COUNTER(&ENCODER_TIMER, ENCODER_TIMER_CENTER);
+    __HAL_TIM_SET_COUNTER(&ENCODER_TIMER, ENCODER_COUNTER_CENTER);
 
-    encoder.raw_count = (uint32_t)ENCODER_TIMER_CENTER;
-    encoder.prev_raw_count = (uint32_t)ENCODER_TIMER_CENTER;
+    encoder.raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
+    encoder.prev_raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
     encoder.delta_count = 0;
     encoder.total_count = 0;
 
