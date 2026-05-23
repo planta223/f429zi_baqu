@@ -62,6 +62,9 @@ volatile uint8_t g_test_enable = 0U;                 // 폐루프 제어 활성�
 volatile uint8_t g_test_stop = 0U;                   // 제어 비활성화 및 모터 정지 명령
 volatile int32_t g_test_motor_freq_hz = 0;           // 오픈루프 모터 주파수 명령 [Hz]
 
+volatile int64_t g_mon_encoder_total_count = 0;
+volatile int32_t g_mon_encoder_delta_count = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +75,15 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void App_UpdateMonitorVariables(void)
+{
+    Encoder_t encoder;
+
+    encoder = Encoder_GetState();
+
+    g_mon_encoder_total_count = encoder.total_count;
+    g_mon_encoder_delta_count = encoder.delta_count;
+}
 
 static void App_ProcessTestCommands(void)
 {
@@ -172,6 +184,8 @@ int main(void)
 	        }
 
 	        Control_Update();
+
+	        App_UpdateMonitorVariables();
 
 	        Teleplot_Update(now_ms);
 	    }
