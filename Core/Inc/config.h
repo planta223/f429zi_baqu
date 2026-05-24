@@ -68,11 +68,11 @@
 #define ETHERNET_ASMS_PACKET_SIZE            5U
 #define ETHERNET_ASMS_IP_LAST_OCTET          5U
 
-#define ETHERNET_ASMS_POLARITY               1
-#define ETHERNET_ASMS_ADC_MIN_RAW            0U
-#define ETHERNET_ASMS_ADC_CENTER_RAW         2048U
-#define ETHERNET_ASMS_ADC_MAX_RAW            4095U
-#define ETHERNET_ASMS_ADC_DEADBAND_RAW       50U
+#define ETHERNET_ASMS_POLARITY              -1
+#define ETHERNET_ASMS_ADC_MIN_RAW            (-2048)
+#define ETHERNET_ASMS_ADC_CENTER_RAW         0
+#define ETHERNET_ASMS_ADC_MAX_RAW            2047
+#define ETHERNET_ASMS_ADC_DEADBAND_RAW       50
 
 // PC : 자동 조작 (각도값 수신)
 #define ETHERNET_PC_PACKET_SIZE              9U

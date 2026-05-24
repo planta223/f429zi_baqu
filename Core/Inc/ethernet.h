@@ -41,7 +41,7 @@ typedef struct {
 
     float steering_deg;       // 제어기에 전달할 목표 조향각 [deg]
 
-    uint16_t asms_adc_raw;    // ASMS joystick ADC raw
+    int16_t asms_adc_raw;     // ASMS joystick ADC raw
     int32_t  pc_steer_raw;    // PC steering raw
     uint32_t speed_raw;       // PC speed raw
     uint8_t  misc;            // PC misc field

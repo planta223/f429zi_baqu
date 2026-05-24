@@ -15,7 +15,7 @@
  *   byte[0]   : mode
  *   byte[1]   : unused
  *   byte[2]   : unused
- *   byte[3:4] : joystick ADC raw, little-endian uint16_t
+ *   byte[3:4] : joystick ADC raw, little-endian int16_t
  *
  * - PC packet: 9 bytes
  *   PC는 상위제어 용어 기준의 자율주행 상위제어 / AUTO steering command source이다.
@@ -107,10 +107,10 @@ static float Ethernet_ClampMechanicalSteeringDeg(float value)
                                STEERING_MECHANICAL_MAX_DEG);
 }
 
-static uint16_t Ethernet_ReadUint16LE(const uint8_t *buf)
+static int16_t Ethernet_ReadInt16LE(const uint8_t *buf)
 {
-    return (uint16_t)(((uint16_t)buf[0]) |
-                     ((uint16_t)buf[1] << 8));
+    return (int16_t)(((uint16_t)buf[0]) |
+                    ((uint16_t)buf[1] << 8));
 }
 
 static int32_t Ethernet_ReadInt32LE(const uint8_t *buf)
@@ -142,7 +142,7 @@ static uint32_t Ethernet_ReadUint32LE(const uint8_t *buf)
  * - ADC raw가 center보다 크면 양의 조향각, 작으면 음의 조향각으로 변환한다.
  * - 방향이 반대이면 ETHERNET_ASMS_POLARITY를 -1로 설정한다.
  */
-static float Ethernet_AsmsAdcToSteeringDeg(uint16_t adc_raw)
+static float Ethernet_AsmsAdcToSteeringDeg(int16_t adc_raw)
 {
     int32_t offset;
     int32_t positive_span;
@@ -160,11 +160,6 @@ static float Ethernet_AsmsAdcToSteeringDeg(uint16_t adc_raw)
 
     offset = (int32_t)adc_raw - (int32_t)ETHERNET_ASMS_ADC_CENTER_RAW;
 
-    /*
-     * Deadband.
-     *
-     * 조이스틱 중립 근처 ADC 노이즈를 0으로 처리한다.
-     */
     if ((offset < (int32_t)ETHERNET_ASMS_ADC_DEADBAND_RAW) &&
         (offset > -(int32_t)ETHERNET_ASMS_ADC_DEADBAND_RAW)) {
         offset = 0;
@@ -188,10 +183,6 @@ static float Ethernet_AsmsAdcToSteeringDeg(uint16_t adc_raw)
         normalized = (float)offset / (float)negative_span;
     }
 
-    /*
-     * normalized 범위: -1.0 ~ +1.0
-     * steering_deg 범위: ETHERNET_ASMS_MIN/MAX_STEERING_DEG
-     */
     steering_deg =
         (float)ETHERNET_ASMS_POLARITY *
         ETHERNET_ASMS_MAX_STEERING_DEG *
@@ -206,7 +197,7 @@ static float Ethernet_AsmsAdcToSteeringDeg(uint16_t adc_raw)
 
 static void Ethernet_SavePacket(Ethernet_Source_t source,
                                 float steering_deg,
-                                uint16_t asms_adc_raw,
+                                int16_t asms_adc_raw,
                                 int32_t pc_steer_raw,
                                 uint32_t speed_raw,
                                 uint8_t misc)
@@ -233,10 +224,10 @@ static void Ethernet_SavePacket(Ethernet_Source_t source,
 static void Ethernet_ProcessAsmsPacket(const uint8_t *buf)
 {
     uint8_t mode;
-    uint16_t asms_adc_raw;
+    int16_t asms_adc_raw;
 
     mode = buf[0];
-    asms_adc_raw = Ethernet_ReadUint16LE(&buf[3]);
+    asms_adc_raw = Ethernet_ReadInt16LE(&buf[3]);
 
     if ((mode == (uint8_t)STEER_MODE_AUTO) ||
         (mode == (uint8_t)STEER_MODE_MANUAL) ||
@@ -307,7 +298,7 @@ static void Ethernet_ProcessPcPacket(const uint8_t *buf)
 
     Ethernet_SavePacket(ETHERNET_SOURCE_PC,
                         steering_deg,
-                        0U,
+                        0,
                         pc_steer_raw,
                         pc_speed_raw,
                         pc_misc);
