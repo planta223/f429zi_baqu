@@ -14,6 +14,13 @@
 
 static Encoder_t encoder;
 
+/* USER DEBUG: Live Expressions */
+volatile uint32_t g_dbg_encoder_raw_count = 0;
+volatile int32_t  g_dbg_encoder_delta_count = 0;
+volatile int64_t  g_dbg_encoder_total_count = 0;
+volatile float    g_dbg_encoder_motor_deg = 0.0f;
+volatile float    g_dbg_encoder_steering_deg = 0.0f;
+
 static int32_t Encoder_ApplyPolarity(int32_t count)
 {
 #if ENCODER_COUNT_POLARITY < 0
@@ -100,6 +107,12 @@ void Encoder_Update(void)
     encoder.motor_velocity_dps = Encoder_CountToMotorVelocityDps(delta);
     encoder.steering_velocity_dps =
         Encoder_MotorDegToSteeringDeg(encoder.motor_velocity_dps);
+
+    g_dbg_encoder_raw_count = encoder.raw_count;
+    g_dbg_encoder_delta_count = encoder.delta_count;
+    g_dbg_encoder_total_count = encoder.total_count;
+    g_dbg_encoder_motor_deg = encoder.motor_deg;
+    g_dbg_encoder_steering_deg = encoder.steering_deg;
 
     encoder.prev_raw_count = raw;
 }
