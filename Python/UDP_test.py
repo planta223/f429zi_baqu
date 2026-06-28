@@ -201,7 +201,7 @@ def send_pc(deg: int, speed_raw: int = 0, estop: bool = False):
     """
     global sock
 
-    deg = clamp_int(deg, -60, 60)
+    deg = clamp_int(deg, -30, 30)
     speed_raw = clamp_int(speed_raw, 0, 0xFFFFFFFF)
     misc = 0x80 if estop else 0x00
 
@@ -256,7 +256,7 @@ def pc_mode():
     print()
     print("[PC MODE]")
     print("각도값[deg] 입력: 예) 0, 5, -5, 10")
-    print("범위는 -60 ~ +60 deg로 제한됩니다.")
+    print("범위는 -30 ~ +30 deg로 제한됩니다.")
     print("q: 모드 선택으로 복귀")
     print("e: PC ESTOP 전송")
 
@@ -280,7 +280,7 @@ def pc_mode():
             print("invalid input")
             continue
 
-        target_deg = clamp_int(value, -60, 60)
+        target_deg = clamp_int(value, -30, 30)
         print(f"PC target updated: {target_deg} deg")
 
 
@@ -293,13 +293,13 @@ def asms_mode():
     print("[ASMS MODE]")
     print("ASMS signed value 입력: -2048 ~ +2047")
     print("현재 final steering test 기준:")
-    print("  +2047 ≈ -60 deg")
-    print("  +1000 ≈ -29 deg")
+    print("  +2047 ≈ -30 deg")
+    print("  +1000 ≈ -14.7 deg")
     print("  0     = 0 deg")
-    print("  -1000 ≈ +29 deg")
-    print("  -2048 ≈ +60 deg")
+    print("  -1000 ≈ +14.6 deg")
+    print("  -2048 ≈ +30 deg")
     print("0 근처는 deadband 때문에 0 deg로 처리될 수 있습니다.")
-    print("테스트 예: -1000, -500, 0, 500, 1000")
+    print("테스트 예: -2000, -1000, -500, 0, 500, 1000, 2000")
     print("q: 모드 선택으로 복귀")
     print("e: ASMS ESTOP 전송")
 

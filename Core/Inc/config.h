@@ -24,8 +24,8 @@
 #define ENCODER_COUNT_POLARITY         -1 	      // 엔코더 방향 (실측 후 확정됨)
 #define MOTOR_DIR_ACTIVE_HIGH_FOR_CW   0 		  // 모터회전 방향 (실측 후 확정됨)
 
-#define STEERING_MECHANICAL_MAX_DEG     80.0f     // 조향축 기계적 양의 한계 [deg]
-#define STEERING_MECHANICAL_MIN_DEG    -80.0f     // 조향축 기계적 음의 한계 [deg]
+#define STEERING_MECHANICAL_MAX_DEG     40.0f     // 조향축 기계적 양의 한계 [deg]
+#define STEERING_MECHANICAL_MIN_DEG    -40.0f     // 조향축 기계적 음의 한계 [deg]
 
 /* =========================================
  * encoder.c
@@ -43,8 +43,8 @@
 /* =========================================
  * control.c
  * ========================================= */
-#define CONTROL_TARGET_MAX_STEERING_DEG       60.0f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
-#define CONTROL_TARGET_MIN_STEERING_DEG      -60.0f      // 제어 목표 조향각 하한 [deg]
+#define CONTROL_TARGET_MAX_STEERING_DEG       30.0f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
+#define CONTROL_TARGET_MIN_STEERING_DEG      -30.0f      // 제어 목표 조향각 하한 [deg]
 #define CONTROL_REACHED_BAND_STEERING_DEG      0.5f       // 도달 판정 조향각 오차 범위 [deg]
 
 #define CONTROL_DEFAULT_KP                   400.0f     // P 게인 [Hz/motor_deg]
@@ -56,8 +56,8 @@
 /* =========================================
  * ethernet.c
  * ========================================= */
-#define ETHERNET_ASMS_MAX_STEERING_DEG        60.0f
-#define ETHERNET_ASMS_MIN_STEERING_DEG       -60.0f
+#define ETHERNET_ASMS_MAX_STEERING_DEG        30.0f
+#define ETHERNET_ASMS_MIN_STEERING_DEG       -30.0f
 
 #define ETHERNET_PC_MAX_STEERING_DEG          60.0f
 #define ETHERNET_PC_MIN_STEERING_DEG         -60.0f
