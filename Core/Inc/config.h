@@ -18,7 +18,7 @@
 /* =========================================
  * Hardware constants
  * ========================================= */
-#define STEERING_GEAR_RATIO            6.03448f   // 감속비
+#define STEERING_GEAR_RATIO            50.0f   // 감속비
 #define ENCODER_COUNT_PER_MOTOR_REV    12000.0f   // 1회전당 카운트 (실측 후 확정됨)
 #define MOTOR_DRIVER_MAX_FREQ_HZ       1000000U   // 드라이브 line-driver 입력 사양 상한
 #define ENCODER_COUNT_POLARITY         -1 	      // 엔코더 방향 (실측 후 확정됨)
