@@ -19,7 +19,7 @@
 // timeout 정책
 #define ETHERNET_TIMEOUT_POLICY_HOLD       0U // 수정 금지
 #define ETHERNET_TIMEOUT_POLICY_RELEASE    1U // 수정 금지
-#define ETHERNET_TIMEOUT_POLICY            ETHERNET_TIMEOUT_POLICY_HOLD
+#define ETHERNET_TIMEOUT_POLICY            ETHERNET_TIMEOUT_POLICY_RELEASE
 
 
 /* =========================================
@@ -98,6 +98,6 @@
 #define ETHERNET_PC_STEER_SCALE              1.0f
 
 #define ETHERNET_USE_IP_FILTER               0U
-#define ETHERNET_TIMEOUT_MS                  1000U
+#define ETHERNET_TIMEOUT_MS                  300U
 
 #endif /* INC_CONFIG_H_ */

@@ -125,15 +125,26 @@ int main(void)
 
   while (1)
   {
-	    uint32_t now_ms = HAL_GetTick();
+      MX_LWIP_Process();
 
-	    /*
-	     * LwIP polling.
-	     *
-	     * bare-metal LwIP 구조에서는 이 함수가 계속 호출되어야
-	     * UDP 수신 callback이 동작한다.
-	     */
-	    MX_LWIP_Process();
+      /* Ethernet 처리 이후 현재 시간을 취득 */
+      uint32_t last_rx_tick = Ethernet_GetLastRxTick();
+      uint32_t now_ms = HAL_GetTick();
+
+      if ((last_rx_tick != 0U) &&
+          ((uint32_t)(now_ms - last_rx_tick) > ETHERNET_TIMEOUT_MS)) {
+
+      #if ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_RELEASE
+
+          Control_Disable();
+          SVON_Disable();
+
+      #elif ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_HOLD
+
+          /* 마지막 명령 유지 */
+
+      #endif
+      }
 
 	    /*
 	     * ESTOP 처리.
