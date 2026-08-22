@@ -98,6 +98,6 @@
 #define ETHERNET_PC_STEER_SCALE              1.0f
 
 #define ETHERNET_USE_IP_FILTER               0U
-#define ETHERNET_TIMEOUT_MS                  300U
+#define ETHERNET_TIMEOUT_MS                  1000U
 
 #endif /* INC_CONFIG_H_ */
