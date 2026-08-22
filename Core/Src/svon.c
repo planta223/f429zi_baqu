@@ -10,7 +10,7 @@
 #include "main.h"
 #include "config.h"
 
-static uint8_t svon_enabled = 0U;
+static volatile uint8_t svon_enabled = 0U;
 
 static void SVON_WriteOutput(uint8_t enable)
 {
