@@ -17,8 +17,8 @@
 #define CONTROL_PERIOD_MS              1U
 
 // timeout 정책
-#define ETHERNET_TIMEOUT_POLICY_HOLD       0U // 수정 금지
-#define ETHERNET_TIMEOUT_POLICY_RELEASE    1U // 수정 금지
+#define ETHERNET_TIMEOUT_POLICY_HOLD       0U // 수정 금지. 마지막 유효 목표 조향각 유지
+#define ETHERNET_TIMEOUT_POLICY_RELEASE    1U // 수정 금지. Servo OFF
 #define ETHERNET_TIMEOUT_POLICY            ETHERNET_TIMEOUT_POLICY_RELEASE
 
 

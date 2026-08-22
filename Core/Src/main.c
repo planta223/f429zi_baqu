@@ -125,44 +125,23 @@ int main(void)
 
   while (1)
   {
-      MX_LWIP_Process();
-
-      /* Ethernet 처리 이후 현재 시간을 취득 */
-      uint32_t last_rx_tick = Ethernet_GetLastRxTick();
-      uint32_t now_ms = HAL_GetTick();
-
-      if ((last_rx_tick != 0U) &&
-          ((uint32_t)(now_ms - last_rx_tick) > ETHERNET_TIMEOUT_MS)) {
-
-      #if ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_RELEASE
-
-          Control_Disable();
-          SVON_Disable();
-
-      #elif ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_HOLD
-
-          /* 마지막 명령 유지 */
-
-      #endif
-      }
+	  	/* 1. 수신 패킷 처리 */
+	    MX_LWIP_Process();
 
 	    /*
-	     * ESTOP 처리.
-	     *
-	     * ASMS ESTOP 또는 PC misc bit7 ESTOP가 들어오면
-	     * 제어기를 disable하고 PWM 출력을 정지한다.
+	     * 2. Ethernet 처리 이후 시간값을 한 번씩만 snapshot.
+	     *    last_rx_tick보다 now_ms가 오래된 값이 되는 문제를 방지한다.
 	     */
+        uint32_t last_rx_tick = Ethernet_GetLastRxTick();
+        uint32_t now_ms = HAL_GetTick();
+
+        /* ESTOP 처리 */
 	    if (Ethernet_ConsumeEmergencyRequest()) {
 	        Control_Disable();
 	        Motor_Stop();
 	    }
 
-	    /*
-	     * Ethernet 수신 명령 처리.
-	     *
-	     * ASMS MANUAL packet 또는 PC AUTO packet에서 변환된
-	     * 목표 조향각을 control target으로 반영한다.
-	     */
+	    /* 새로운 조향 명령 처리 */
 	    if (Ethernet_HasNewData()) {
 	        Ethernet_Packet_t packet = Ethernet_GetLatestData();
 	        SteerMode_t mode = Ethernet_GetCurrentMode();
@@ -182,19 +161,9 @@ int main(void)
 	        }
 	    }
 
-	    /*
-	    * 통신 timeout 처리.
-	    *
-	    * HOLD:
-	    * - 마지막 유효 목표 조향각 유지
-	    * - Control / SVON 상태 유지
-	    *
-	    * RELEASE:
-	    * - 제어 중지
-	    * - Servo OFF 및 토크 해제
-	    */
-	    if ((Ethernet_GetLastRxTick() != 0U) &&
-	        ((uint32_t)(now_ms - Ethernet_GetLastRxTick()) > ETHERNET_TIMEOUT_MS)) {
+	    /* Ethernet timeout 처리 */
+	    if ((last_rx_tick != 0U) &&
+	        ((uint32_t)(now_ms - last_rx_tick) > ETHERNET_TIMEOUT_MS)) {
 
 	    #if ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_RELEASE
 
@@ -203,19 +172,14 @@ int main(void)
 
 	    #elif ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_HOLD
 
-	        /*
-	        * 마지막 수신 목표각을 계속 유지한다.
-	        * Control과 SVON을 그대로 유지한다.
-	        */
+	        /* 마지막 명령 및 SVON 상태 유지 */
 
 	    #else
 	    #error "Invalid ETHERNET_TIMEOUT_POLICY" // HOLD, RELEASE 설정 잘못하면 컴파일 오류
 	    #endif
 	    }
 
-	    /*
-	     * 1 ms control loop.
-	     */
+	    /* 1 ms control loop. */
 	    if ((uint32_t)(now_ms - last_control_tick_ms) >= CONTROL_PERIOD_MS) {
 	        last_control_tick_ms += CONTROL_PERIOD_MS;
 
