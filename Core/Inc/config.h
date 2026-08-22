@@ -11,9 +11,16 @@
 #include <stdint.h>
 
 /* =========================================
- * System timing
+ * System constants
  * ========================================= */
+// 제어주기
 #define CONTROL_PERIOD_MS              1U
+
+// timeout 정책
+#define ETHERNET_TIMEOUT_POLICY_HOLD       0U // 수정 금지
+#define ETHERNET_TIMEOUT_POLICY_RELEASE    1U // 수정 금지
+#define ETHERNET_TIMEOUT_POLICY            ETHERNET_TIMEOUT_POLICY_RELEASE
+
 
 /* =========================================
  * Hardware constants
@@ -27,11 +34,19 @@
 #define STEERING_MECHANICAL_MAX_DEG     40.0f     // 조향축 기계적 양의 한계 [deg]
 #define STEERING_MECHANICAL_MIN_DEG    -40.0f     // 조향축 기계적 음의 한계 [deg]
 
+
+/* =========================================
+ * svon.c
+ * ========================================= */
+#define SVON_ACTIVE_HIGH    1U
+
+
 /* =========================================
  * encoder.c
  * ========================================= */
 #define ENCODER_COUNTER_PERIOD         4294967295UL // 32-bit TIM period: 0 ~ 4294967295
 #define ENCODER_COUNTER_CENTER         2147483648UL // center of 32-bit counter range
+
 
 /* =========================================
  * motor.c
@@ -39,6 +54,7 @@
 #define MOTOR_MIN_FREQ_HZ               150U      // 현재 TIM1 PSC=17에서 실질적 저주파 하한 근처
 #define MOTOR_MAX_FREQ_HZ               600000U   // 개루프 제어 운용 상한 (MOTOR_DRIVER_MAX_FREQ_HZ 이하로 설정할 것)
 #define MOTOR_DIRECTION_GUARD_MS        1U        // 방향 반전시 대기시간(ms)
+
 
 /* =========================================
  * control.c
@@ -52,6 +68,7 @@
 #define CONTROL_DEFAULT_KD                     0.0f       // D 게인
 #define CONTROL_INTEGRAL_LIMIT                50.0f    // 적분항 누적 제한
 #define CONTROL_OUTPUT_LIMIT_HZ            600000.0f   // 폐루프 제어 운용 상한 (MOTOR_MAX_FREQ_HZ 이하로 설정할 것)
+
 
 /* =========================================
  * ethernet.c

@@ -32,6 +32,7 @@
 #include "control.h"
 #include "config.h"
 #include "ethernet.h"
+#include "svon.h"
 
 /* USER CODE END Includes */
 
@@ -106,11 +107,14 @@ int main(void)
   Encoder_Init();
   Motor_Init();
   Control_Init();
+  SVON_Init();
   Encoder_Reset();
   Control_Reset();
   Ethernet_Init();
   Control_SetTargetSteeringDeg(0.0f);
-  Control_Enable(); // open-loop 사용 안할시 활성화
+
+  Control_Disable();
+  SVON_Disable();
 
   /* USER CODE END 2 */
 
@@ -157,27 +161,45 @@ int main(void)
 
 	            Control_SetTargetSteeringDeg(packet.steering_deg);
 
-	            /*
-	             * 매 packet마다 Control_Enable()을 호출하면
-	             * integral이 계속 reset될 수 있으므로,
-	             * disable 상태일 때만 enable한다.
-	             */
-	            if (Control_IsEnabled() == 0U) {
+	            // 정상 운전 명령이 들어오면 Servo ON.
+	            if (SVON_IsEnabled() == 0U)
+	            	SVON_Enable();
+
+	            // Control은 disable 상태에서만 enable한다.
+	            if (Control_IsEnabled() == 0U)
 	                Control_Enable();
-	            }
 	        }
 	    }
 
 	    /*
-	     * 통신 timeout 처리.
-	     *
-	     * 마지막 유효 수신 이후 ETHERNET_TIMEOUT_MS가 지나면
-	     * stale command를 유지하지 않고 정지한다.
-	     */
+	    * 통신 timeout 처리.
+	    *
+	    * HOLD:
+	    * - 마지막 유효 목표 조향각 유지
+	    * - Control / SVON 상태 유지
+	    *
+	    * RELEASE:
+	    * - 제어 중지
+	    * - Servo OFF 및 토크 해제
+	    */
 	    if ((Ethernet_GetLastRxTick() != 0U) &&
 	        ((uint32_t)(now_ms - Ethernet_GetLastRxTick()) > ETHERNET_TIMEOUT_MS)) {
+
+	    #if ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_RELEASE
+
 	        Control_Disable();
-	        Motor_Stop();
+	        SVON_Disable();
+
+	    #elif ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_HOLD
+
+	        /*
+	        * 마지막 수신 목표각을 계속 유지한다.
+	        * Control과 SVON을 그대로 유지한다.
+	        */
+
+	    #else
+	    #error "Invalid ETHERNET_TIMEOUT_POLICY" // HOLD, RELEASE 설정 잘못하면 컴파일 오류
+	    #endif
 	    }
 
 	    /*
