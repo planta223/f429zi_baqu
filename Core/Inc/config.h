@@ -21,6 +21,8 @@
 #define ETHERNET_TIMEOUT_POLICY_RELEASE    1U // 수정 금지. Servo OFF
 #define ETHERNET_TIMEOUT_POLICY            ETHERNET_TIMEOUT_POLICY_RELEASE
 
+// PC 단독 테스트 허용 (without ASMS)
+#define ETHERNET_ALLOW_PC_AUTO_ENTRY    1U
 
 /* =========================================
  * Hardware constants

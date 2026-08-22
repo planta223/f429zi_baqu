@@ -266,9 +266,21 @@ static void Ethernet_ProcessPcPacket(const uint8_t *buf)
     uint8_t pc_misc;
     float steering_deg;
 
+    #if ETHERNET_ALLOW_PC_AUTO_ENTRY
     /*
-     * PC steering command는 AUTO 모드에서만 인정한다.
-     * ASMS packet을 통해 AUTO 모드로 전환되기 전까지는 PC packet을 무시한다.
+     * ASMS 없이 PC 단독으로 시작하는 경우,
+     * 초기 NONE 상태에서만 PC가 AUTO 모드로 진입할 수 있도록 허용한다.
+     *
+     * MANUAL / ESTOP 상태는 PC가 덮어쓰지 않는다.
+     */
+    if (ethernet_current_mode == STEER_MODE_NONE) {
+        ethernet_current_mode = STEER_MODE_AUTO;
+    }
+    #endif
+
+    /*
+     * AUTO가 아닌 상태에서는 PC steering command를 무시한다.
+     * 따라서 MANUAL / ESTOP 상태에서 PC가 제어권을 가져갈 수 없다.
      */
     if (ethernet_current_mode != STEER_MODE_AUTO) {
         return;
