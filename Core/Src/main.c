@@ -17,7 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <comm_ethernet.h>
+#include <ethernet.h>
 #include "main.h"
 #include "can.h"
 #include "iwdg.h"
