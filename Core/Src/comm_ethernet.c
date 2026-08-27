@@ -25,8 +25,7 @@
  *   byte[8]   : misc, bit7 = emergency stop
  */
 
-#include "ethernet.h"
-
+#include <comm_ethernet.h>
 #include "main.h"
 #include "config.h"
 

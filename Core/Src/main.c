@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <comm_ethernet.h>
 #include "main.h"
 #include "can.h"
 #include "iwdg.h"
@@ -32,7 +33,6 @@
 #include "motor.h"
 #include "control.h"
 #include "config.h"
-#include "ethernet.h"
 #include "svon.h"
 
 /* USER CODE END Includes */

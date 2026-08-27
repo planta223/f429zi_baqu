@@ -5,8 +5,8 @@
  *      Author: kyubeom
  */
 
-#ifndef INC_ETHERNET_H_
-#define INC_ETHERNET_H_
+#ifndef INC_COMM_ETHERNET_H_
+#define INC_COMM_ETHERNET_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -63,4 +63,4 @@ SteerMode_t Ethernet_GetCurrentMode(void);
 bool Ethernet_ConsumeEmergencyRequest(void);
 uint32_t Ethernet_GetLastRxTick(void);
 
-#endif /* INC_ETHERNET_H_ */
+#endif /* INC_COMM_ETHERNET_H_ */
