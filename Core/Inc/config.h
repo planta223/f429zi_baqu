@@ -71,10 +71,29 @@
 #define CONTROL_INTEGRAL_LIMIT                50.0f    // 적분항 누적 제한
 #define CONTROL_OUTPUT_LIMIT_HZ            600000.0f   // 폐루프 제어 운용 상한 (MOTOR_MAX_FREQ_HZ 이하로 설정할 것)
 
+/* =========================================
+ * comm_manager.c
+ * ========================================= */
+
+#define COMM_MODE_ETHERNET_ONLY     0U // 수정 금지. ethernet 단독 (대회 기본값)
+#define COMM_MODE_CAN_ONLY          1U // 수정 금지. can 단독
+#define COMM_MODE_BOTH              2U // 수정 금지. ethernet + can 동시
+#define COMM_MODE                   COMM_MODE_ETHERNET_ONLY
+
+#define COMM_TIMEOUT_POLICY_HOLD        0U
+#define COMM_TIMEOUT_POLICY_RELEASE     1U
+
+#define ETHERNET_TIMEOUT_MS             300U
+#define ETHERNET_TIMEOUT_POLICY         COMM_TIMEOUT_POLICY_RELEASE
+
+#define CAN_TIMEOUT_MS                  300U
+#define CAN_TIMEOUT_POLICY              COMM_TIMEOUT_POLICY_RELEASE
 
 /* =========================================
- * ethernet.c
+ * comm_ethernet.c
  * ========================================= */
+#define ETHERNET_USE_IP_FILTER                1U // IP 구분 허용 여부
+
 #define ETHERNET_ASMS_MAX_STEERING_DEG        30.0f
 #define ETHERNET_ASMS_MIN_STEERING_DEG       -30.0f
 
@@ -83,7 +102,7 @@
 
 #define ETHERNET_UDP_PORT                    5000U
 
-// ASMS : 수동 조작 (조이스틱 ADC 기반 좌회전, 우회전)
+/* ASMS : 수동 조작 (조이스틱 ADC 기반 좌회전, 우회전) */
 #define ETHERNET_ASMS_PACKET_SIZE            5U
 #define ETHERNET_ASMS_IP_LAST_OCTET          5U
 
@@ -93,13 +112,46 @@
 #define ETHERNET_ASMS_ADC_MAX_RAW            2047
 #define ETHERNET_ASMS_ADC_DEADBAND_RAW       50
 
-// PC : 자동 조작 (각도값 수신)
+/* PC : 자동 조작 (각도값 수신) */
 #define ETHERNET_PC_PACKET_SIZE              9U
 #define ETHERNET_PC_IP_LAST_OCTET            1U
 
 #define ETHERNET_PC_STEER_SCALE              1.0f
 
-#define ETHERNET_USE_IP_FILTER               1U
 #define ETHERNET_TIMEOUT_MS                  300U
 
 #endif /* INC_CONFIG_H_ */
+
+
+/* =========================================
+ * comm_can.c
+ * ========================================= */
+
+/* CAN message ID */
+#define CAN_ID_ASMS_CMD             0x100U
+#define CAN_ID_PC_CMD               0x101U
+#define CAN_ID_STEER_STATUS         0x180U
+#define CAN_ID_ECU_STATUS           0x181U   // Reserved, not implemented
+
+/* CAN DLC */
+#define CAN_ASMS_CMD_DLC            3U
+#define CAN_PC_CMD_DLC              5U
+#define CAN_STEER_STATUS_DLC        6U
+
+/* CAN_ASMS_CMD data */
+#define CAN_ASMS_MODE_OFFSET        0U // Byte 0
+#define CAN_ASMS_JOYSTICK_OFFSET    1U // Byte 1,2
+
+/* CAN_PC_CMD data */
+#define CAN_PC_STEER_OFFSET         0U
+#define CAN_PC_MISC_OFFSET          4U
+#define CAN_PC_MISC_ESTOP_MASK      0x80U
+
+/* 0x180 CAN_STEER_STATUS */
+#define CAN_STATUS_ACTUAL_OFFSET    0U
+#define CAN_STATUS_TARGET_OFFSET    2U
+#define CAN_STATUS_FLAGS_OFFSET     4U
+#define CAN_STATUS_MODE_OFFSET      5U
+
+/* Steering angle encoding: int16_t, 0.01 deg/bit */
+#define CAN_STATUS_STEER_SCALE      100.0f
