@@ -1059,11 +1059,19 @@ void CommManager_Update(void)
 #endif
 
 
-#if COMM_MODE == COMM_MODE_CAN_ONLY
+#if ((COMM_MODE == COMM_MODE_CAN_ONLY) || \
+     (COMM_MODE == COMM_MODE_BOTH))
 
     /*
-     * BOTH에서는 CAN이 제어권을 갖지 않으므로
-     * CAN timeout으로 Servo를 끄지 않는다.
+     * CAN timeout 상태는 CAN_ONLY / BOTH 모두 감지한다.
+     *
+     * 단,
+     * - CAN_ONLY : timeout policy(HOLD/RELEASE)를 실제 제어에 적용
+     * - BOTH     : can_timeout 상태만 기록하고,
+     *              Ethernet 제어에는 영향을 주지 않음
+     *
+     * 실제 Control/SVON RELEASE 여부는
+     * CommManager_CheckCanTimeout() 내부에서 결정한다.
      */
     CommManager_CheckCanTimeout(
         now_ms
