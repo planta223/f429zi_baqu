@@ -267,11 +267,12 @@ void CommCan_Init(void)
     comm_can_last_request_rx_tick = 0U;
 
 
-    memset(
-        &comm_can_request,
-        0,
-        sizeof(comm_can_request)
-    );
+    /*
+     * ISR/main 공유 mailbox 초기화
+     */
+    comm_can_request.steer_raw = 0;
+    comm_can_request.flags = 0U;
+    comm_can_request.rx_tick_ms = 0U;
 
 
     /*
