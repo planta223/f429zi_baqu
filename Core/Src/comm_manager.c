@@ -261,6 +261,21 @@ static void CommManager_ApplyTarget(
     CommManager_Source_t source)
 {
     /*
+     * Encoder feedback이 없으면 폐루프 조향 금지.
+     * Fail-closed.
+     */
+    if (Encoder_IsInitialized() == 0U) {
+
+        Control_Disable();
+        SVON_Disable();
+
+        comm_manager_state.active_source =
+            COMM_SOURCE_NONE;
+
+        return;
+    }
+
+    /*
      * 실제 최종 steering limit은
      * Control_SetTargetSteeringDeg()에서 한 번 더 clamp된다.
      */
@@ -720,41 +735,53 @@ static void CommManager_CheckEthernetTimeout(
 /* =========================================
  * CAN timeout
  * ========================================= */
-
 static void CommManager_CheckCanTimeout(
     uint32_t now_ms)
 {
     uint32_t last_tick;
 
-
     last_tick =
         comm_manager_state.last_valid_can_tick;
 
 
+    /*
+     * 아직 유효 CAN Request를 한 번도 받지 않음.
+     */
     if (last_tick == 0U) {
         return;
     }
 
 
-    if (comm_manager_state.can_timeout != 0U) {
+    /*
+     * 아직 timeout 아님.
+     */
+    if ((uint32_t)(now_ms - last_tick)
+        <= CAN_TIMEOUT_MS) {
+
+        comm_manager_state.can_timeout = 0U;
         return;
     }
 
 
-    if ((uint32_t)(now_ms - last_tick) <=
-        CAN_TIMEOUT_MS) {
-
-        return;
-    }
-
-
+    /*
+     * CAN stale 상태 기록.
+     *
+     * CAN_ONLY / BOTH 모두 여기까지 수행한다.
+     */
     comm_manager_state.can_timeout = 1U;
 
+
+#if COMM_MODE == COMM_MODE_CAN_ONLY
+
+    /*
+     * CAN이 실제 조향 제어권을 가지는 경우에만
+     * timeout policy를 제어기에 적용한다.
+     */
 
 #if CAN_TIMEOUT_POLICY == COMM_TIMEOUT_POLICY_HOLD
 
     /*
-     * 마지막 target 유지.
+     * 마지막 target / Control / SVON 상태 유지
      */
 
 
@@ -768,10 +795,10 @@ static void CommManager_CheckCanTimeout(
 
 
 #else
-
 #error "Invalid CAN_TIMEOUT_POLICY"
-
 #endif
+
+#endif /* COMM_MODE == COMM_MODE_CAN_ONLY */
 }
 
 

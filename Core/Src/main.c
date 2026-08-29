@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <ethernet.h>
 #include "main.h"
 #include "can.h"
 #include "iwdg.h"
@@ -29,11 +28,14 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "config.h"
 #include "encoder.h"
 #include "motor.h"
 #include "control.h"
-#include "config.h"
 #include "svon.h"
+#include "comm_can.h"
+#include "comm_ethernet.h"
+#include "comm_manager.h"
 
 /* USER CODE END Includes */
 

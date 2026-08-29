@@ -24,9 +24,9 @@ static bool comm_can_initialized = false;
 /*
  * Steering Request latest-wins mailbox.
  */
-static CommCan_SteerRequest_t comm_can_request;
+static volatile CommCan_SteerRequest_t comm_can_request;
 
-static bool comm_can_request_pending = false;
+static volatile bool comm_can_request_pending = false;
 
 
 /*
@@ -35,13 +35,13 @@ static bool comm_can_request_pending = false;
  * 정상 request가 뒤이어 와도 manager가 consume하기 전에는
  * ESTOP event가 사라지지 않는다.
  */
-static bool comm_can_estop_pending = false;
+static volatile bool comm_can_estop_pending = false;
 
 
 /*
  * Transport-level timestamp.
  */
-static uint32_t comm_can_last_request_rx_tick = 0U;
+static volatile uint32_t comm_can_last_request_rx_tick = 0U;
 
 
 /* =========================================
@@ -92,45 +92,43 @@ static void CommCan_ParseSteerRequest(
     const uint8_t *data)
 {
     uint32_t now_ms;
+    int16_t steer_raw;
+    uint8_t flags;
 
     now_ms = HAL_GetTick();
 
-
-    /*
-     * Byte 0~1
-     */
-    comm_can_request.steer_raw =
+    steer_raw =
         CommCan_ReadInt16LE(
             &data[CAN_REQUEST_STEER_OFFSET]
         );
 
-
-    /*
-     * Byte 2
-     */
-    comm_can_request.flags =
+    flags =
         data[CAN_REQUEST_FLAGS_OFFSET];
 
-
-    comm_can_request.rx_tick_ms = now_ms;
 
     comm_can_last_request_rx_tick = now_ms;
 
 
     /*
-     * latest-wins
+     * E-Stop frame은 일반 steering mailbox에 넣지 않는다.
+     * sticky emergency event로만 저장한다.
      */
-    comm_can_request_pending = true;
+    if ((flags & CAN_REQUEST_ESTOP_MASK) != 0U) {
+
+        comm_can_estop_pending = true;
+
+        return;
+    }
 
 
     /*
-     * ESTOP은 sticky event.
+     * 일반 steering request
      */
-    if ((comm_can_request.flags &
-         CAN_REQUEST_ESTOP_MASK) != 0U) {
+    comm_can_request.steer_raw = steer_raw;
+    comm_can_request.flags = flags;
+    comm_can_request.rx_tick_ms = now_ms;
 
-        comm_can_estop_pending = true;
-    }
+    comm_can_request_pending = true;
 }
 
 
@@ -382,21 +380,37 @@ void HAL_CAN_RxFifo0MsgPendingCallback(
 bool CommCan_ConsumeSteerRequest(
     CommCan_SteerRequest_t *request)
 {
+    bool has_request = false;
+
     if (request == NULL) {
         return false;
     }
 
+    /*
+     * CAN RX ISR이 mailbox를 수정하지 못하도록
+     * 아주 짧은 구간 동안 RX0 interrupt를 막는다.
+     */
+    HAL_NVIC_DisableIRQ(COMM_CAN_RX_IRQn);
 
-    if (!comm_can_request_pending) {
-        return false;
+    if (comm_can_request_pending) {
+
+        request->steer_raw =
+            comm_can_request.steer_raw;
+
+        request->flags =
+            comm_can_request.flags;
+
+        request->rx_tick_ms =
+            comm_can_request.rx_tick_ms;
+
+        comm_can_request_pending = false;
+
+        has_request = true;
     }
 
+    HAL_NVIC_EnableIRQ(COMM_CAN_RX_IRQn);
 
-    *request = comm_can_request;
-
-    comm_can_request_pending = false;
-
-    return true;
+    return has_request;
 }
 
 
@@ -408,9 +422,13 @@ bool CommCan_ConsumeEstopRequest(void)
 {
     bool pending;
 
+    HAL_NVIC_DisableIRQ(COMM_CAN_RX_IRQn);
+
     pending = comm_can_estop_pending;
 
     comm_can_estop_pending = false;
+
+    HAL_NVIC_EnableIRQ(COMM_CAN_RX_IRQn);
 
     return pending;
 }
