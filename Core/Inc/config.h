@@ -51,7 +51,7 @@
 
 
 /* =========================================
- * control.c
+ * control.c : 수행
  * ========================================= */
 #define CONTROL_TARGET_MAX_STEERING_DEG       30.0f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
 #define CONTROL_TARGET_MIN_STEERING_DEG      -30.0f      // 제어 목표 조향각 하한 [deg]
@@ -63,8 +63,9 @@
 #define CONTROL_INTEGRAL_LIMIT                50.0f    // 적분항 누적 제한
 #define CONTROL_OUTPUT_LIMIT_HZ            600000.0f   // 폐루프 제어 운용 상한 (MOTOR_MAX_FREQ_HZ 이하로 설정할 것)
 
+
 /* =========================================
- * comm_manager.c
+ * comm_manager.c : 해석
  * ========================================= */
 
 #define COMM_MODE_ETHERNET_ONLY     0U // 수정 금지. ethernet 단독 (대회 기본값)
@@ -79,7 +80,7 @@
 #define CAN_TIMEOUT_MS                  300U
 #define CAN_TIMEOUT_POLICY              COMM_TIMEOUT_POLICY_RELEASE
 
-/* ASMS Command */
+/* Ethernet ASMS Command */
 #define ASMS_STEER_SCALE                30.0f
 #define ASMS_STEER_POLARITY            -1
 #define ASMS_ADC_MIN_RAW               (-2048)
@@ -87,13 +88,21 @@
 #define ASMS_ADC_MAX_RAW                2047
 #define ASMS_ADC_DEADBAND_RAW           50
 
-/* PC Command */
+/* Ethernet PC Command */
 #define PC_STEER_SCALE                  1.0f
 #define PC_STEER_POLARITY               1
 #define PC_ALLOW_AUTO_ENTRY             1U // NONE 상태에서 PC command만으로 AUTO 진입 허용
 
+/* CAN Request */
+#define CAN_REQUEST_STEER_SCALE         100.0f // 0.01 deg/LSB, raw = deg × 100
+
+/* CAN Status */
+#define CAN_STATUS_PERIOD_MS            20U
+#define CAN_STATUS_STEER_SCALE          100.0f // 0.01 deg/LSB, raw = deg × 100
+
+
 /* =========================================
- * comm_ethernet.c
+ * comm_ethernet.c : 파싱 1
  * ========================================= */
 #define ETHERNET_UDP_PORT                 5000U
 #define ETHERNET_USE_IP_FILTER            1U // PC/ASMS 송신 IP 검사 여부
@@ -113,8 +122,9 @@
 #define ETHERNET_PC_MISC_ESTOP_MASK       0x80U // Byte 8(MISC)의 bit 7(MSB): E-Stop
 #define ETHERNET_PC_IP_LAST_OCTET         1U // 10.177.21.1
 
+
 /* =========================================
- * comm_can.c
+ * comm_can.c : 파싱 2
  * ========================================= */
  /* CAN ID */
 #define CAN_ID_STEER_REQUEST              0x100U
@@ -128,20 +138,16 @@
 #define CAN_REQUEST_STEER_OFFSET          0U // Byte 0~1: Requested steering angle
 #define CAN_REQUEST_FLAGS_OFFSET          2U // Byte 2: Flags
 #define CAN_REQUEST_ESTOP_MASK            0x80U // Flags bit 7(MSB): E-Stop
-#define CAN_REQUEST_STEER_SCALE           100.0f // raw = deg × 100
 
 /* Steering Status - TX */
 #define CAN_STATUS_ACTUAL_OFFSET          0U // Byte 0~1: Actual steering angle
 #define CAN_STATUS_TARGET_OFFSET          2U // Byte 2~3: Applied target angle
 #define CAN_STATUS_FLAGS_OFFSET           4U // Byte 4: Status flags
-#define CAN_STATUS_STEER_SCALE            100.0f // raw = deg × 100
 
 #define CAN_STATUS_FLAG_REACHED               (1U << 0) // bit0 : 목표 조향값 도달 여부
 #define CAN_STATUS_FLAG_CONTROL_ENABLED       (1U << 1) // bit1 : 제어 활성화 여부
 #define CAN_STATUS_FLAG_SVON_ENABLED          (1U << 2) // bit2 : SVON 활성화 여부
 #define CAN_STATUS_FLAG_MOTOR_OUTPUT_ACTIVE   (1U << 3) // bit3 : PULSE/PWM 출력 활성화 여부
 #define CAN_STATUS_FLAG_ENCODER_INITIALIZED   (1U << 4) // bit4 : 엔코더 초기화 여부
-
-#define CAN_STATUS_PERIOD_MS              20U
 
 #endif /* INC_CONFIG_H_ */
