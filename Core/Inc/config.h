@@ -126,6 +126,9 @@
 /* =========================================
  * comm_can.c : 파싱 2
  * ========================================= */
+/* CAN Hardware */ 
+#define COMM_CAN_HANDLE    hcan1 
+
  /* CAN ID */
 #define CAN_ID_STEER_REQUEST              0x100U
 #define CAN_ID_STEER_STATUS               0x180U
