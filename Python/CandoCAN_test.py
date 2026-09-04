@@ -1,4 +1,5 @@
 import argparse
+import os
 import struct
 import threading
 import time
@@ -22,6 +23,35 @@ except ImportError:
     print("[ERROR] PyUSB 모듈을 찾을 수 없습니다.")
     print('gs_usb 의존성을 포함하여 설치:')
     print('  python -m pip install "python-can[gs-usb]"')
+    sys.exit(1)
+
+try:
+    import libusb_package
+except ImportError:
+    print("[ERROR] libusb-package module not found.")
+    print("Install:")
+    print("  python -m pip install libusb-package")
+    sys.exit(1)
+
+
+# PyUSB's default Windows lookup does not search inside libusb-package.
+# Add the bundled DLL directory for gs-usb, and use its backend for scanning.
+LIBUSB_DLL_PATH = libusb_package.get_library_path()
+
+if LIBUSB_DLL_PATH is None:
+    print("[ERROR] libusb-1.0 library not found in libusb-package.")
+    sys.exit(1)
+
+os.environ["PATH"] = (
+    str(LIBUSB_DLL_PATH.parent)
+    + os.pathsep
+    + os.environ.get("PATH", "")
+)
+
+LIBUSB_BACKEND = libusb_package.get_libusb1_backend()
+
+if LIBUSB_BACKEND is None:
+    print(f"[ERROR] failed to load libusb backend: {LIBUSB_DLL_PATH}")
     sys.exit(1)
 
 
@@ -134,6 +164,7 @@ def find_candlelight_devices():
             find_all=True,
             idVendor=CANDLELIGHT_VID,
             idProduct=CANDLELIGHT_PID,
+            backend=LIBUSB_BACKEND,
         )
         or []
     )
@@ -179,6 +210,9 @@ def print_usb_devices(devices):
             print(f"      product      = {product}")
         if serial:
             print(f"      serial       = {serial}")
+
+        # Release the PyUSB handle before python-can opens the same device.
+        usb.util.dispose_resources(dev)
 
 
 # ============================================================
