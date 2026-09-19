@@ -5,6 +5,7 @@ import time
 import subprocess
 import atexit
 import sys
+import locale
 
 # ============================================================
 # Network configuration
@@ -28,6 +29,8 @@ STEER_MODE_MANUAL = 2
 STEER_MODE_ESTOP = 3
 
 TX_PERIOD_S = 0.02  # 50 Hz
+IP_READY_TIMEOUT_S = 10.0
+IP_READY_POLL_S = 0.1
 
 # PC command: 현재 firmware 기준 raw 1 LSB = 1 deg
 PC_STEER_MIN_DEG = -30
@@ -56,21 +59,23 @@ added_temp_ips = set()
 # ============================================================
 # Windows IP helper
 # ============================================================
-def run_cmd(cmd: str):
+def run_cmd(cmd):
+    """Windows command를 현재 시스템 문자 인코딩으로 실행합니다."""
     result = subprocess.run(
         cmd,
-        shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        encoding=locale.getpreferredencoding(False),
+        errors="replace",
     )
 
-    stdout = result.stdout.decode("utf-8", errors="ignore")
-    stderr = result.stderr.decode("utf-8", errors="ignore")
+    stdout = result.stdout
+    stderr = result.stderr
     output = stdout + stderr
 
     if result.returncode != 0:
         print("[CMD FAILED]")
-        print(cmd)
+        print(subprocess.list2cmdline(cmd))
 
         if stdout:
             print("[stdout]")
@@ -93,27 +98,68 @@ def run_cmd(cmd: str):
     return True, output
 
 
-def add_temp_ip(ip_address: str) -> bool:
+def can_bind_source_ip(ip_address: str) -> bool:
+    """해당 IPv4 주소가 현재 유효한 로컬 주소인지 직접 확인합니다."""
+    test_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        test_sock.bind((ip_address, 0))
+        return True
+    except OSError:
+        return False
+    finally:
+        test_sock.close()
+
+
+def wait_for_source_ip(ip_address: str) -> bool:
+    """DAD 완료 후 주소가 실제 bind 가능해질 때까지 기다립니다."""
+    deadline = time.monotonic() + IP_READY_TIMEOUT_S
+
+    while time.monotonic() < deadline:
+        if can_bind_source_ip(ip_address):
+            print(f"[IP READY] {ip_address}")
+            return True
+
+        time.sleep(IP_READY_POLL_S)
+
+    print(f"[IP READY TIMEOUT] {ip_address}")
+    print("주소가 Tentative/Duplicate 상태인지 확인하십시오:")
+    print(
+        f'  Get-NetIPAddress -InterfaceAlias "{ETH_IF_NAME}" '
+        f'-AddressFamily IPv4'
+    )
+    return False
+
+
+def ensure_source_ip(ip_address: str) -> bool:
     """
     Ethernet adapter에 테스트용 IPv4 address를 추가합니다.
 
     이미 존재하는 IP이면 그대로 사용하고,
     이 프로그램이 새로 추가한 IP만 종료 시 삭제합니다.
     """
-    cmd = (
-        f'netsh interface ip add address '
-        f'name="{ETH_IF_NAME}" '
-        f'addr={ip_address} '
-        f'mask={ETHERNET_MASK} '
-        f'store=active'
-    )
+    if can_bind_source_ip(ip_address):
+        print(f"[IP READY] {ip_address} already configured; reusing it")
+        return True
+
+    cmd = [
+        "netsh",
+        "interface",
+        "ipv4",
+        "add",
+        "address",
+        f"name={ETH_IF_NAME}",
+        f"address={ip_address}",
+        f"mask={ETHERNET_MASK}",
+        "store=active",
+    ]
 
     print(f"[NETSH] add IP: {ip_address}/{ETHERNET_MASK}")
     ok, output = run_cmd(cmd)
 
     if ok:
         added_temp_ips.add(ip_address)
-        return True
+        return wait_for_source_ip(ip_address)
 
     lower_output = output.lower()
 
@@ -123,8 +169,8 @@ def add_temp_ip(ip_address: str) -> bool:
         or "already exists" in lower_output
         or "object already exists" in lower_output
     ):
-        print(f"[NETSH] {ip_address} already exists. Reusing it.")
-        return True
+        print(f"[NETSH] {ip_address} already exists; waiting until ready")
+        return wait_for_source_ip(ip_address)
 
     print()
     print(f"IP 추가 실패: {ip_address}")
@@ -138,11 +184,15 @@ def delete_temp_ip(ip_address: str):
     if ip_address not in added_temp_ips:
         return
 
-    cmd = (
-        f'netsh interface ip delete address '
-        f'name="{ETH_IF_NAME}" '
-        f'addr={ip_address}'
-    )
+    cmd = [
+        "netsh",
+        "interface",
+        "ipv4",
+        "delete",
+        "address",
+        f"name={ETH_IF_NAME}",
+        f"address={ip_address}",
+    ]
 
     print(f"[NETSH] delete IP: {ip_address}")
     run_cmd(cmd)
@@ -280,6 +330,7 @@ def pc_mode():
     print("예: 0, 5, -5, 10, -30, 30")
     print("q: 모드 선택으로 복귀")
     print("e: PC E-Stop 1회 전송 후 idle")
+    print("주의: MANUAL/ESTOP 상태였다면 먼저 auto 명령을 보내야 합니다.")
 
     while True:
         s = input("pc target deg> ").strip().lower()
@@ -379,6 +430,30 @@ def send_asms_auto_once():
     print("[ASMS] AUTO mode packet sent once")
 
 
+def start_zero_degree_test():
+    """검증된 ASMS MANUAL 0도 패킷을 50 Hz로 계속 송신합니다."""
+    global active_mode, asms_value
+
+    asms_value = 0
+    active_mode = "asms"
+
+    print("[ZERO TEST] ASMS MANUAL target=0, 50 Hz")
+    print("[ZERO TEST] 정지하려면 idle을 입력하십시오.")
+    print("[EXPECT] RED OFF, GREEN ON while packets are accepted")
+    print(
+        "[NOTE] GREEN ON인데 SVON OFF이면 UDP는 정상이며 "
+        "firmware의 Encoder_IsInitialized() 조건을 확인하십시오."
+    )
+
+
+def print_runtime_status():
+    print(f"[STATUS] TX mode     = {active_mode}")
+    print(f"[STATUS] PC socket   = {pc_sock.getsockname() if pc_sock else None}")
+    print(f"[STATUS] ASMS socket = {asms_sock.getsockname() if asms_sock else None}")
+    print(f"[STATUS] target      = {STM32_IP}:{STM32_PORT}")
+    print("[STATUS] UDP에는 STM32 ACK가 없으므로 LED/디버거로 수신을 판정합니다.")
+
+
 # ============================================================
 # Main
 # ============================================================
@@ -393,26 +468,36 @@ def main():
     print(f"Adapter      = {ETH_IF_NAME}")
     print()
 
+    # 준비 도중 종료되더라도 이 실행에서 추가한 주소는 정리합니다.
+    atexit.register(cleanup_temp_ips)
+
     # 1. Firmware IP filter와 맞는 source IP 두 개 준비
-    if not add_temp_ip(PC_SOURCE_IP):
+    if not ensure_source_ip(PC_SOURCE_IP):
         print("PC source IP 준비 실패. 종료합니다.")
         sys.exit(1)
 
-    if not add_temp_ip(ASMS_SOURCE_IP):
+    if not ensure_source_ip(ASMS_SOURCE_IP):
         print("ASMS source IP 준비 실패. 종료합니다.")
         cleanup_temp_ips()
         sys.exit(1)
 
-    atexit.register(cleanup_temp_ips)
-    time.sleep(0.5)
-
     # 2. source IP별 UDP socket 생성
     try:
         pc_sock = create_bound_udp_socket(PC_SOURCE_IP)
+    except OSError as e:
+        print(f"[PC SOCKET BIND FAILED] {PC_SOURCE_IP}: {e}")
+        cleanup_temp_ips()
+        sys.exit(1)
+
+    try:
         asms_sock = create_bound_udp_socket(ASMS_SOURCE_IP)
     except OSError as e:
-        print(f"[SOCKET CREATE/BIND FAILED] {e}")
-        print("해당 source IP가 실제 Ethernet adapter에 설정됐는지 확인하십시오.")
+        print(f"[ASMS SOCKET BIND FAILED] {ASMS_SOURCE_IP}: {e}")
+
+        if pc_sock is not None:
+            pc_sock.close()
+            pc_sock = None
+
         cleanup_temp_ips()
         sys.exit(1)
 
@@ -430,6 +515,8 @@ def main():
     print("  epc    : PC E-Stop 1회 전송")
     print("  easms  : ASMS E-Stop 1회 전송")
     print("  auto   : ASMS AUTO packet 1회 전송")
+    print("  zero   : ASMS MANUAL 0도 연속 송신 (50 Hz)")
+    print("  status : 현재 socket/TX 상태 표시")
     print("  idle   : periodic TX 정지")
     print("  q      : quit")
 
@@ -457,6 +544,14 @@ def main():
 
             if cmd == "auto":
                 send_asms_auto_once()
+                continue
+
+            if cmd == "zero":
+                start_zero_degree_test()
+                continue
+
+            if cmd == "status":
+                print_runtime_status()
                 continue
 
             if cmd == "pc":
