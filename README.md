@@ -187,3 +187,14 @@ PC packet은 ASMS packet을 통해 AUTO mode로 전환된 상태에서만 유효
 안전장치도 추가해야 합니다. 현재 소프트웨어에는 목표 조향각 제한, 출력 제한, timeout, ESTOP가 구현되어 있으나 제어 실패, 엔코더 누락, 기구 걸림, 탈조, 과토크 상황에서는 기구적 손상 가능성이 있습니다. 따라서 서보드라이브 토크 상한 설정, 서보드라이브 alarm output 확인 및 STM32 입력 연동, 좌우 limit switch 추가, home 또는 center sensor 추가, 하드웨어 ESTOP 회로 구성, 시운전용 저속 제한 profile 추가, 제어 실패 시 PWM 차단 및 서보 enable 차단 구조 검토가 필요합니다.
 
 통신 구조도 보완이 필요합니다. 현재는 packet size만으로 ASMS packet과 PC packet을 구분하므로, 실제 통합 단계에서는 `ETHERNET_USE_IP_FILTER = 1U` 적용을 검토해야 합니다. 또한 ASMS source IP와 PC source IP를 분리하고, packet checksum 또는 sequence number를 추가하여 잘못된 packet 수신 시 무시하는 방어 로직을 강화할 필요가 있습니다.
+
+LED 동작은 다음과 같이 정의합니다.
+| 상태                        |  Green |                   Blue |    Red |
+| ------------------------- | -----: | ---------------------: | -----: |
+| 부팅 / 명령 미수신               |    OFF |       CAN이면 TX 성공 후 ON |    OFF |
+| 정상 steering command 수신    |     ON |                     ON |    OFF |
+| command 300 ms timeout    |    OFF | CAN Status TX 정상이라면 ON |    OFF |
+| ESTOP 진입 직후               |  기존 상태 |                  ON 가능 |     ON |
+| ESTOP만 300 ms 이상 지속       |    OFF |                  ON 가능 |     ON |
+| ESTOP 후 정상 CAN command 복귀 |     ON |                     ON |    OFF |
+| CAN TX 실패                 | 상태에 따름 |                    OFF | 상태에 따름 |

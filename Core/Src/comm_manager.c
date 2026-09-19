@@ -15,6 +15,7 @@
 #include "motor.h"
 #include "svon.h"
 #include "config.h"
+#include "led.h"
 
 #include "main.h"
 
@@ -325,6 +326,8 @@ static void CommManager_ApplyEmergency(
 
     comm_manager_state.last_estop_source_mask =
         source_mask;
+
+    LED_RED_ON();
 }
 
 
@@ -339,6 +342,8 @@ static void CommManager_MarkEthernetValid(
         tick;
 
     comm_manager_state.ethernet_timeout = 0U;
+
+    LED_GREEN_ON();
 }
 
 
@@ -349,6 +354,10 @@ static void CommManager_MarkCanValid(
         tick;
 
     comm_manager_state.can_timeout = 0U;
+
+    #if COMM_MODE == COMM_MODE_CAN_ONLY
+        LED_GREEN_ON();
+    #endif
 }
 
 
@@ -451,6 +460,8 @@ static void CommManager_ProcessAsms(void)
         comm_manager_state.mode =
             COMM_STEER_MODE_AUTO;
 
+        LED_RED_OFF();
+
         break;
 
 
@@ -463,7 +474,8 @@ static void CommManager_ProcessAsms(void)
         comm_manager_state.mode =
             COMM_STEER_MODE_MANUAL;
 
-
+        LED_RED_OFF();
+        
         steering_deg =
             CommManager_AsmsRawToSteeringDeg(
                 packet.steer_raw
@@ -642,6 +654,7 @@ static void CommManager_ProcessCan(void)
     comm_manager_state.mode =
         COMM_STEER_MODE_AUTO;
 
+    LED_RED_OFF();
 
     steering_deg =
         CommManager_CanRawToSteeringDeg(
@@ -707,6 +720,8 @@ static void CommManager_CheckEthernetTimeout(
 
     comm_manager_state.ethernet_timeout = 1U;
 
+    LED_GREEN_OFF();
+
 
 #if ETHERNET_TIMEOUT_POLICY == COMM_TIMEOUT_POLICY_HOLD
 
@@ -769,7 +784,10 @@ static void CommManager_CheckCanTimeout(
      * CAN_ONLY / BOTH 모두 여기까지 수행한다.
      */
     comm_manager_state.can_timeout = 1U;
-
+    
+    #if COMM_MODE == COMM_MODE_CAN_ONLY
+        LED_GREEN_OFF();
+    #endif
 
 #if COMM_MODE == COMM_MODE_CAN_ONLY
 
@@ -881,9 +899,10 @@ static void CommManager_SendCanStatus(void)
      *
      * TX mailbox가 꽉 차면 이번 주기는 skip한다.
      */
-    (void)CommCan_SendSteerStatus(
-        &status
-    );
+    if (CommCan_SendSteerStatus(&status))
+        LED_BLUE_ON();
+    else
+        LED_BLUE_OFF();
 }
 
 

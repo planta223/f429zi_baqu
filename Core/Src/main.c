@@ -18,15 +18,15 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "can.h"
 #include "iwdg.h"
-#include "lwip.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "can.h"
+#include "lwip.h"
 
 #include "config.h"
 #include "encoder.h"
@@ -36,6 +36,7 @@
 #include "comm_can.h"
 #include "comm_ethernet.h"
 #include "comm_manager.h"
+#include "led.h"
 
 /* USER CODE END Includes */
 
@@ -104,15 +105,16 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_IWDG_Init();
+  /* USER CODE BEGIN 2 */
 
   #if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
       MX_LWIP_Init();
   #endif
-  #if ((COMM_MODE == COMM_MODE_CAN_ONLY) || COMM_MODE == COMM_MODE_BOTH))
+  #if ((COMM_MODE == COMM_MODE_CAN_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
       MX_CAN1_Init();
   #endif
-  /* USER CODE BEGIN 2 */
 
+  LED_Init();
   Encoder_Init();
   Motor_Init();
   Control_Init();
