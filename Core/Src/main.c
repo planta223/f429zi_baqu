@@ -104,8 +104,13 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_IWDG_Init();
-  MX_LWIP_Init();
-  MX_CAN1_Init();
+
+  #if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
+      MX_LWIP_Init();
+  #endif
+  #if ((COMM_MODE == COMM_MODE_CAN_ONLY) || COMM_MODE == COMM_MODE_BOTH))
+      MX_CAN1_Init();
+  #endif
   /* USER CODE BEGIN 2 */
 
   Encoder_Init();
@@ -131,11 +136,9 @@ int main(void)
 
   while (1)
   {
-      /*
-      * Ethernet LwIP polling
-      */
-      MX_LWIP_Process();
-
+      #if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
+	  	  MX_LWIP_Process();
+	  #endif
 
       /*
       * 모든 통신 / mode / timeout / status 처리

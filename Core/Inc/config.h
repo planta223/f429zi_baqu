@@ -71,7 +71,7 @@
 #define COMM_MODE_ETHERNET_ONLY     0U // 수정 금지. ethernet 단독 (대회 기본값)
 #define COMM_MODE_CAN_ONLY          1U // 수정 금지. can 단독
 #define COMM_MODE_BOTH              2U // 수정 금지. ethernet + can 동시, 제어권은 Ethernet
-#define COMM_MODE                   COMM_MODE_CAN_ONLY
+#define COMM_MODE                   COMM_MODE_ETHERNET_ONLY
 
 #define COMM_TIMEOUT_POLICY_HOLD        0U // 수정 금지. 마지막 유효 목표 조향각 유지
 #define COMM_TIMEOUT_POLICY_RELEASE     1U // 수정 금지. Servo off
