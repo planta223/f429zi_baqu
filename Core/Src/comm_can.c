@@ -110,12 +110,23 @@ static void CommCan_ParseSteerRequest(
 
 
     /*
-     * E-Stop frame은 일반 steering mailbox에 넣지 않는다.
-     * sticky emergency event로만 저장한다.
-     */
+    * E-Stop frame은 일반 steering mailbox에 넣지 않는다.
+    * sticky emergency event로 저장한다.
+    *
+    * 또한 E-Stop 이전에 수신되어 아직 manager가 처리하지 않은
+    * 정상 steering request는 폐기한다.
+    *
+    * 이후 새 정상 request가 수신되면 다시 mailbox에 들어가므로
+    * E-Stop 해제 후 정상 command로 자동 복귀할 수 있다.
+    */
     if ((flags & CAN_REQUEST_ESTOP_MASK) != 0U) {
 
         comm_can_estop_pending = true;
+
+        /*
+        * E-Stop 이전의 stale normal command 폐기
+        */
+        comm_can_request_pending = false;
 
         return;
     }
