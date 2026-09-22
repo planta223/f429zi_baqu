@@ -19,20 +19,24 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "iwdg.h"
-#include "lwip.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "can.h"
+#include "lwip.h"
 
+#include "config.h"
 #include "encoder.h"
 #include "motor.h"
 #include "control.h"
-#include "config.h"
-#include "ethernet.h"
 #include "svon.h"
+#include "comm_can.h"
+#include "comm_ethernet.h"
+#include "comm_manager.h"
+#include "led.h"
 
 /* USER CODE END Includes */
 
@@ -101,20 +105,29 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_IWDG_Init();
-  MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
 
+  #if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
+      MX_LWIP_Init();
+  #endif
+  #if ((COMM_MODE == COMM_MODE_CAN_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
+      MX_CAN1_Init();
+  #endif
+
+  LED_Init();
   Encoder_Init();
   Motor_Init();
   Control_Init();
   SVON_Init();
+
   Encoder_Reset();
   Control_Reset();
-  Ethernet_Init();
   Control_SetTargetSteeringDeg(0.0f);
 
   Control_Disable();
   SVON_Disable();
+
+  CommManager_Init();
 
   /* USER CODE END 2 */
 
@@ -125,67 +138,32 @@ int main(void)
 
   while (1)
   {
-	  	/* 1. 수신 패킷 처리 */
-	    MX_LWIP_Process();
+      #if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || (COMM_MODE == COMM_MODE_BOTH))
+	  	  MX_LWIP_Process();
+	  #endif
 
-	    /*
-	     * 2. Ethernet 처리 이후 시간값을 한 번씩만 snapshot.
-	     *    last_rx_tick보다 now_ms가 오래된 값이 되는 문제를 방지한다.
-	     */
-        uint32_t last_rx_tick = Ethernet_GetLastRxTick();
-        uint32_t now_ms = HAL_GetTick();
+      /*
+      * 모든 통신 / mode / timeout / status 처리
+      */
+      CommManager_Update();
 
-        /* ESTOP 처리 */
-	    if (Ethernet_ConsumeEmergencyRequest()) {
-	        Control_Disable();
-	        Motor_Stop();
-	    }
 
-	    /* 새로운 조향 명령 처리 */
-	    if (Ethernet_HasNewData()) {
-	        Ethernet_Packet_t packet = Ethernet_GetLatestData();
-	        SteerMode_t mode = Ethernet_GetCurrentMode();
+      /*
+      * control loop
+      */
+      uint32_t now_ms = HAL_GetTick();
 
-	        if ((mode == STEER_MODE_AUTO) ||
-	            (mode == STEER_MODE_MANUAL)) {
+      if ((uint32_t)(
+              now_ms -
+              last_control_tick_ms)
+          >= CONTROL_PERIOD_MS) {
 
-	            Control_SetTargetSteeringDeg(packet.steering_deg);
+          last_control_tick_ms +=
+              CONTROL_PERIOD_MS;
 
-	            // 정상 운전 명령이 들어오면 Servo ON.
-	            if (SVON_IsEnabled() == 0U)
-	            	SVON_Enable();
-
-	            // Control은 disable 상태에서만 enable한다.
-	            if (Control_IsEnabled() == 0U)
-	                Control_Enable();
-	        }
-	    }
-
-	    /* Ethernet timeout 처리 */
-	    if ((last_rx_tick != 0U) &&
-	        ((uint32_t)(now_ms - last_rx_tick) > ETHERNET_TIMEOUT_MS)) {
-
-	    #if ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_RELEASE
-
-	        Control_Disable();
-	        SVON_Disable();
-
-	    #elif ETHERNET_TIMEOUT_POLICY == ETHERNET_TIMEOUT_POLICY_HOLD
-
-	        /* 마지막 명령 및 SVON 상태 유지 */
-
-	    #else
-	    #error "Invalid ETHERNET_TIMEOUT_POLICY" // HOLD, RELEASE 설정 잘못하면 컴파일 오류
-	    #endif
-	    }
-
-	    /* 1 ms control loop. */
-	    if ((uint32_t)(now_ms - last_control_tick_ms) >= CONTROL_PERIOD_MS) {
-	        last_control_tick_ms += CONTROL_PERIOD_MS;
-
-	        Encoder_Update();
-	        Control_Update();
-	    }
+          Encoder_Update();
+          Control_Update();
+      }
 
 	    HAL_IWDG_Refresh(&hiwdg);
     /* USER CODE END WHILE */
