@@ -176,6 +176,23 @@ pc_steer_raw = 10
 
 PC packet은 ASMS packet을 통해 AUTO mode로 전환된 상태에서만 유효합니다.
 
+
+
+통신은 CAN 이 추가되며 정책이 변경됐습니다.
+세 가지 모드를 지원합니다.
+- ETHERNET_ONLY
+- CAN_ONLY
+- BOTH : 개발 중
+
+ETHERNET_ONLY 는 정상 동작 확인했습니다. UDP_test_v2.py 로 테스트 가능합니다.
+CAN_ONLY는 테스트 해봐야 합니다. CANdo py 로 테스트 하십시오.
+BOTH는 정책 수립이 아직 이루어지지 않았습니다.
+
+서보 선 접촉부에 대한 신뢰성 개선이 필요합니다.
+
+타이밍 관리를 용이하게 하기 위해 동일 기능 RTOS로 변환 예정입니다.
+
+
 ## 시행착오
 
 아래 글은 현재 커밋과 호환되지 않습니다.
