@@ -163,4 +163,11 @@
 #define CAN_STATUS_FLAG_MOTOR_OUTPUT_ACTIVE   (1U << 3) // bit3 : PULSE/PWM 출력 활성화 여부
 #define CAN_STATUS_FLAG_ENCODER_INITIALIZED   (1U << 4) // bit4 : 엔코더 초기화 여부
 
+/* =========================================
+ * homing.c : 초기 0도 명령 수신시 원점
+ * ========================================= */
+// 1: 좌측 끝 부팅 후 PC 0도 명령으로 중앙 복귀
+// 0: 기존 방식, 부팅 위치를 0도로 사용
+#define STEERING_BOOT_CENTERING_ENABLE    1U
+
 #endif /* INC_CONFIG_H_ */
