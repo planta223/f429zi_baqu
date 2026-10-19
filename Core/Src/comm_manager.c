@@ -521,15 +521,13 @@ static void CommManager_ProcessAsms(void)
             );
 
 
-        CommManager_ApplyTarget(
-            steering_deg,
-            COMM_SOURCE_ETHERNET_ASMS
-        );
+        if (CommManager_ApplyTarget(
+                steering_deg,
+                COMM_SOURCE_ETHERNET_ASMS)) {
 
-
-        CommManager_MarkEthernetValid(
-            packet.rx_tick_ms
-        );
+            CommManager_MarkEthernetValid(
+                packet.rx_tick_ms);
+        }
 
         break;
 
