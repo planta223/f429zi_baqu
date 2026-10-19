@@ -122,7 +122,7 @@ int main(void)
   SVON_Init();
 
   Homing_Init();
-  
+
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
 
@@ -165,6 +165,23 @@ int main(void)
 
           Encoder_Update();
           Control_Update();
+
+          {
+              CommManager_State_t comm_state =
+                  CommManager_GetState();
+
+              const bool pc_command_valid =
+                  (comm_state.mode == COMM_STEER_MODE_AUTO) &&
+                  (comm_state.active_source ==
+                      COMM_SOURCE_ETHERNET_PC) &&
+                  (comm_state.ethernet_timeout == 0U) &&
+                  ((uint32_t)(
+                      HAL_GetTick() -
+                      comm_state.last_valid_ethernet_tick)
+                      <= ETHERNET_TIMEOUT_MS);
+
+              Homing_Update(pc_command_valid);
+          }
       }
 
 	    HAL_IWDG_Refresh(&hiwdg);
