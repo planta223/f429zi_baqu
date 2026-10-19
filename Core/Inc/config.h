@@ -55,7 +55,7 @@
  * ========================================= */
 #define CONTROL_TARGET_MAX_STEERING_DEG       24.0f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
 #define CONTROL_TARGET_MIN_STEERING_DEG      -24.0f      // 제어 목표 조향각 하한 [deg]
-#define CONTROL_REACHED_BAND_STEERING_DEG     0.25f       // 도달 판정 조향각 오차 범위 [deg]
+#define CONTROL_REACHED_BAND_STEERING_DEG     0.10f       // 도달 판정 조향각 오차 범위 [deg]
 
 #define CONTROL_DEFAULT_KP                   400.0f     // P 게인 [Hz/motor_deg]
 #define CONTROL_DEFAULT_KI                     0.0f       // I 게인
