@@ -248,7 +248,6 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 {
   uint32_t i = 0U;
   struct pbuf *q = NULL;
-  err_t errval = ERR_OK;
   ETH_BufferTypeDef Txbuffer[ETH_TX_DESC_CNT] = {0};
 
   memset(Txbuffer, 0 , ETH_TX_DESC_CNT*sizeof(ETH_BufferTypeDef));
@@ -278,9 +277,14 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
   TxConfig.TxBuffer = Txbuffer;
   TxConfig.pData = p;
 
-  HAL_ETH_Transmit(&heth, &TxConfig, ETH_DMA_TRANSMIT_TIMEOUT);
+  if (HAL_ETH_Transmit(
+          &heth,
+          &TxConfig,
+          ETH_DMA_TRANSMIT_TIMEOUT) != HAL_OK) {
+      return ERR_IF;
+  }
 
-  return errval;
+  return ERR_OK;
 }
 
 /**
