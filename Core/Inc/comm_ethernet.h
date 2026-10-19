@@ -20,7 +20,7 @@
 #define COMM_ETHERNET_ESTOP_PC     (1U << 1)
 
 
-/* ASMS packet */
+/* ASMS packet - RX */
 typedef struct {
     uint8_t  mode_raw;
     uint16_t speed_raw;
@@ -29,13 +29,22 @@ typedef struct {
 } CommEthernet_AsmsPacket_t;
 
 
-/* PC packet */
+/* PC packet - RX */
 typedef struct {
     int32_t steer_raw;
     uint32_t speed_raw;
     uint8_t misc;
     uint32_t rx_tick_ms;
 } CommEthernet_PcPacket_t;
+
+
+/* Steering Status - TX*/
+typedef struct
+{
+    int16_t actual_raw;       // Actual steering angle [0.01 deg/LSB]
+    uint32_t sample_tick_ms;  // Measurement timestamp [ms]
+} CommEthernet_SteerStatus_t;
+
 
 void CommEthernet_Init(void);
 bool CommEthernet_IsInitialized(void);
@@ -48,4 +57,5 @@ uint8_t CommEthernet_ConsumeEstopMask(void);
 uint32_t CommEthernet_GetLastAsmsRxTick(void);
 uint32_t CommEthernet_GetLastPcRxTick(void);
 
+bool CommEthernet_SendSteerStatus( const CommEthernet_SteerStatus_t *status);
 #endif /* INC_COMM_ETHERNET_H_ */
