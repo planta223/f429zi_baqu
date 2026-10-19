@@ -37,6 +37,7 @@
 #include "comm_ethernet.h"
 #include "comm_manager.h"
 #include "led.h"
+#include "homing.h"
 
 /* USER CODE END Includes */
 
@@ -120,7 +121,8 @@ int main(void)
   Control_Init();
   SVON_Init();
 
-  Encoder_Reset();
+  Homing_Init();
+  
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
 
