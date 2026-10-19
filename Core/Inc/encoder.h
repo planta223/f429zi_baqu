@@ -21,6 +21,7 @@ typedef struct {
     float motor_velocity_dps;
     float steering_velocity_dps;
 
+    uint32_t sample_tick_ms; // 엔코더 측정 시각[ms]
     uint8_t initialized;
 } Encoder_t;
 

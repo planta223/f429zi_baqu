@@ -104,23 +104,32 @@
 /* =========================================
  * comm_ethernet.c : 파싱 1
  * ========================================= */
-#define ETHERNET_UDP_PORT                 5000U
+#define ETHERNET_UDP_PORT                 5000U // STM32 local UDP port
+#define ETHERNET_STATUS_DEST_PORT         5002U // 상위제어 status 수신 포트
 #define ETHERNET_USE_IP_FILTER            1U // PC/ASMS 송신 IP 검사 여부
 
-/* ASMS UDP packet */
+/* ASMS UDP packet - RX */
 #define ETHERNET_ASMS_PACKET_SIZE         5U
 #define ETHERNET_ASMS_MODE_OFFSET         0U // Byte 0
 #define ETHERNET_ASMS_SPEED_OFFSET        1U // Byte 1,2. 사용 안함.
 #define ETHERNET_ASMS_STEER_OFFSET        3U // Byte 3,4
 #define ETHERNET_ASMS_IP_LAST_OCTET       5U // 10.177.21.5
 
-/* PC UDP packet */
+/* PC UDP packet - RX */
 #define ETHERNET_PC_PACKET_SIZE           9U
 #define ETHERNET_PC_STEER_OFFSET          0U // Byte 0,1,2,3
 #define ETHERNET_PC_SPEED_OFFSET          4U // Byte 4,5,6,7. 사용 안함.
 #define ETHERNET_PC_MISC_OFFSET           8U // Byte 8
 #define ETHERNET_PC_MISC_ESTOP_MASK       0x80U // Byte 8(MISC)의 bit 7(MSB): E-Stop
 #define ETHERNET_PC_IP_LAST_OCTET         1U // 10.177.21.1
+
+/* Ethernet steering status - TX */
+#define ETHERNET_STATUS_PACKET_SIZE         6U
+#define ETHERNET_STATUS_ACTUAL_OFFSET       0U // Byte 0~1: Actual steering angle [degree]
+#define ETHERNET_STATUS_TIMESTAMP_OFFSET    2U // Byte 2~5: Measurement timestamp [ms]
+#define ETHERNET_STATUS_DEST_IP             "10.177.21.1"
+#define ETHERNET_STATUS_STEER_SCALE         100.0f // 0.01 deg/LSB, raw = deg × 100
+#define ETHERNET_STATUS_PERIOD_MS           20U
 
 
 /* =========================================

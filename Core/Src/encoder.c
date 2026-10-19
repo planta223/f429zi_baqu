@@ -61,11 +61,13 @@ void Encoder_Init(void)
         encoder.motor_velocity_dps = 0.0f;
         encoder.steering_velocity_dps = 0.0f;
 
+        encoder.sample_tick_ms = 0U;
         encoder.initialized = 0U;
         return;
     }
 
     encoder.raw_count = (uint32_t)__HAL_TIM_GET_COUNTER(&ENCODER_TIMER);
+    encoder.sample_tick_ms = HAL_GetTick();
     encoder.prev_raw_count = encoder.raw_count;
     encoder.delta_count = 0;
     encoder.total_count = 0;
@@ -89,6 +91,7 @@ void Encoder_Update(void)
     }
 
     raw = (uint32_t)__HAL_TIM_GET_COUNTER(&ENCODER_TIMER);
+    encoder.sample_tick_ms = HAL_GetTick();
 
     /*
      * 32-bit timer wrap-around handling.
@@ -125,6 +128,8 @@ void Encoder_Reset(void)
 
     __HAL_TIM_SET_COUNTER(&ENCODER_TIMER, ENCODER_COUNTER_CENTER);
 
+    encoder.sample_tick_ms = HAL_GetTick();
+    
     encoder.raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
     encoder.prev_raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
     encoder.delta_count = 0;

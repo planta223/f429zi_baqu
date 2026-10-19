@@ -13,6 +13,7 @@
 #include "lwip/udp.h"
 #include "lwip/pbuf.h"
 #include "lwip/ip_addr.h"
+#include "lwip/netif.h"
 
 #include <string.h>
 
@@ -92,6 +93,39 @@ static int32_t CommEthernet_ReadInt32LE(
     return (int32_t)CommEthernet_ReadUint32LE(buf);
 }
 
+/* =========================================
+ * Little-endian writers
+ * ========================================= */
+
+static void CommEthernet_WriteUint16LE(
+    uint8_t *buf,
+    uint16_t value)
+{
+    buf[0] = (uint8_t)(value & 0xFFU);
+    buf[1] = (uint8_t)((value >> 8) & 0xFFU);
+}
+
+
+static void CommEthernet_WriteInt16LE(
+    uint8_t *buf,
+    int16_t value)
+{
+    CommEthernet_WriteUint16LE(
+        buf,
+        (uint16_t)value
+    );
+}
+
+
+static void CommEthernet_WriteUint32LE(
+    uint8_t *buf,
+    uint32_t value)
+{
+    buf[0] = (uint8_t)(value & 0xFFU);
+    buf[1] = (uint8_t)((value >> 8) & 0xFFU);
+    buf[2] = (uint8_t)((value >> 16) & 0xFFU);
+    buf[3] = (uint8_t)((value >> 24) & 0xFFU);
+}
 
 /* =========================================
  * Source validation
@@ -515,4 +549,90 @@ uint32_t CommEthernet_GetLastAsmsRxTick(void)
 uint32_t CommEthernet_GetLastPcRxTick(void)
 {
     return comm_eth_last_pc_rx_tick;
+}
+
+/* =========================================
+ * Steering Status TX
+ * ========================================= */
+
+bool CommEthernet_SendSteerStatus(
+    const CommEthernet_SteerStatus_t *status)
+{
+    ip_addr_t dest_addr;
+    struct pbuf *p;
+    err_t err;
+
+    uint8_t tx_data[ETHERNET_STATUS_PACKET_SIZE] = {0};
+
+
+    if (status == NULL) {
+        return false;
+    }
+
+    if (!comm_eth_initialized ||
+        comm_eth_udp_pcb == NULL) {
+        return false;
+    }
+
+
+    /* Network interface / link 확인 */
+    if (netif_default == NULL ||
+        !netif_is_up(netif_default) ||
+        !netif_is_link_up(netif_default)) {
+        return false;
+    }
+
+
+    /* 목적지 IP 변환 */
+    if (!ipaddr_aton(
+            ETHERNET_STATUS_DEST_IP,
+            &dest_addr)) {
+        return false;
+    }
+
+
+    /* Byte 0~1: actual steering raw */
+    CommEthernet_WriteInt16LE(
+        &tx_data[ETHERNET_STATUS_ACTUAL_OFFSET],
+        status->actual_raw
+    );
+
+    /* Byte 2~5: measurement timestamp */
+    CommEthernet_WriteUint32LE(
+        &tx_data[ETHERNET_STATUS_TIMESTAMP_OFFSET],
+        status->sample_tick_ms
+    );
+
+
+    /* 송신용 pbuf 할당 */
+    p = pbuf_alloc(
+        PBUF_TRANSPORT,
+        sizeof(tx_data),
+        PBUF_RAM
+    );
+
+    if (p == NULL) {
+        return false;
+    }
+
+
+    err = pbuf_take(
+        p,
+        tx_data,
+        sizeof(tx_data)
+    );
+
+    if (err == ERR_OK) {
+        err = udp_sendto(
+            comm_eth_udp_pcb,
+            p,
+            &dest_addr,
+            ETHERNET_STATUS_DEST_PORT
+        );
+    }
+
+
+    pbuf_free(p);
+
+    return (err == ERR_OK);
 }
