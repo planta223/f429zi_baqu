@@ -18,6 +18,7 @@
 #include "svon.h"
 #include "config.h"
 #include "led.h"
+#include "homing.h"
 
 #include "main.h"
 
@@ -294,49 +295,50 @@ static int16_t CommManager_SteeringDegToCanRaw(
  * Control application
  * ========================================= */
 
-static void CommManager_ApplyTarget(
+static bool CommManager_ApplyTarget(
     float steering_deg,
     CommManager_Source_t source)
 {
-    /*
-     * Encoder feedback이 없으면 폐루프 조향 금지.
-     * Fail-closed.
-     */
-    if (Encoder_IsInitialized() == 0U) {
+    const bool is_pc_command =
+        (source == COMM_SOURCE_ETHERNET_PC);
 
+    if (Encoder_IsInitialized() == 0U) {
         Control_Disable();
         SVON_Disable();
 
         comm_manager_state.active_source =
             COMM_SOURCE_NONE;
 
-        return;
+        return false;
     }
 
     /*
-     * 실제 최종 steering limit은
-     * Control_SetTargetSteeringDeg()에서 한 번 더 clamp된다.
+     * 이 경로를 공통으로 사용하므로
+     * ASMS / CAN도 중앙 복귀 전에는 차단된다.
      */
+    if (!Homing_CheckCommand(
+            steering_deg,
+            is_pc_command)) {
+        return false;
+    }
+
     Control_SetTargetSteeringDeg(steering_deg);
 
-
-    /*
-     * 정상적인 유효 조향명령이 들어오면 Servo ON.
-     */
     if (SVON_IsEnabled() == 0U) {
         SVON_Enable();
     }
 
-
-    /*
-     * Control enable
-     */
     if (Control_IsEnabled() == 0U) {
         Control_Enable();
     }
 
-
     comm_manager_state.active_source = source;
+
+    Homing_OnTargetApplied(
+        steering_deg,
+        is_pc_command);
+
+    return true;
 }
 
 
@@ -591,23 +593,23 @@ static void CommManager_ProcessPc(void)
     }
 
 
-#if PC_ALLOW_AUTO_ENTRY
+    #if PC_ALLOW_AUTO_ENTRY
 
-    /*
-     * ASMS 없이 PC 단독 테스트.
-     *
-     * NONE 상태에서만 AUTO 진입 가능.
-     *
-     * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
-     */
-    if (comm_manager_state.mode ==
-        COMM_STEER_MODE_NONE) {
+        /*
+        * ASMS 없이 PC 단독 테스트.
+        *
+        * NONE 상태에서만 AUTO 진입 가능.
+        *
+        * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
+        */
+        if (comm_manager_state.mode ==
+            COMM_STEER_MODE_NONE) {
 
-        comm_manager_state.mode =
-            COMM_STEER_MODE_AUTO;
-    }
+            comm_manager_state.mode =
+                COMM_STEER_MODE_AUTO;
+        }
 
-#endif
+    #endif
 
 
     /*
@@ -619,22 +621,22 @@ static void CommManager_ProcessPc(void)
         return;
     }
 
+    /* 오래된 패킷으로 최초 복귀를 시작하지 않는다. */
+    if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
+        ETHERNET_TIMEOUT_MS) {
+        return;
+    }
 
     steering_deg =
-        CommManager_PcRawToSteeringDeg(
-            packet.steer_raw
-        );
+        CommManager_PcRawToSteeringDeg(packet.steer_raw);
 
+    if (CommManager_ApplyTarget(
+            steering_deg,
+            COMM_SOURCE_ETHERNET_PC)) {
 
-    CommManager_ApplyTarget(
-        steering_deg,
-        COMM_SOURCE_ETHERNET_PC
-    );
-
-
-    CommManager_MarkEthernetValid(
-        packet.rx_tick_ms
-    );
+        CommManager_MarkEthernetValid(
+            packet.rx_tick_ms);
+    }
 }
 
 
