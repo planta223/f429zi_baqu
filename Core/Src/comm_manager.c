@@ -5,6 +5,8 @@
  *      Author: kyubeom
  */
 
+#include <math.h>
+
 #include "comm_manager.h"
 
 #include "comm_ethernet.h"
@@ -37,6 +39,7 @@
 
 static CommManager_State_t comm_manager_state;
 
+static uint32_t comm_manager_last_ethernet_status_tx_tick = 0U;
 static uint32_t comm_manager_last_can_status_tx_tick = 0U;
 
 
@@ -211,6 +214,40 @@ static float CommManager_CanRawToSteeringDeg(
         CAN_REQUEST_STEER_SCALE;
 }
 
+/* =========================================
+ * Ethernet status conversion
+ * ========================================= */
+
+#if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || \
+     (COMM_MODE == COMM_MODE_BOTH))
+
+static int16_t CommManager_SteeringDegToEthernetRaw(
+    float steering_deg)
+{
+    float raw;
+
+    raw = steering_deg * ETHERNET_STATUS_STEER_SCALE;
+
+    /* int16 범위 보호 */
+    if (raw >= 32767.0f) {
+        return INT16_MAX;
+    }
+
+    if (raw <= -32768.0f) {
+        return INT16_MIN;
+    }
+
+    /* Rounding */
+    if (raw >= 0.0f) {
+        raw += 0.5f;
+    } else {
+        raw -= 0.5f;
+    }
+
+    return (int16_t)raw;
+}
+
+#endif
 
 /* =========================================
  * CAN status conversion
@@ -819,6 +856,70 @@ static void CommManager_CheckCanTimeout(
 #endif /* COMM_MODE == COMM_MODE_CAN_ONLY */
 }
 
+/* =========================================
+ * Ethernet Status
+ * ========================================= */
+
+#if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || \
+     (COMM_MODE == COMM_MODE_BOTH))
+
+static void CommManager_SendEthernetStatus(void)
+{
+    CommEthernet_SteerStatus_t status;
+    Encoder_t encoder_state;
+
+    encoder_state = Encoder_GetState();
+
+    if (encoder_state.initialized == 0U ||
+        !isfinite(encoder_state.steering_deg)) {
+        return;
+    }
+
+    status.actual_raw =
+        CommManager_SteeringDegToEthernetRaw(
+            encoder_state.steering_deg
+        );
+
+    status.sample_tick_ms =
+        encoder_state.sample_tick_ms;
+
+    /* Best-effort: 실패하면 다음 주기에 최신 상태 송신 */
+    (void)CommEthernet_SendSteerStatus(&status);
+}
+
+#endif
+
+/* =========================================
+ * Ethernet Status scheduler
+ * ========================================= */
+
+static void CommManager_ServiceEthernetStatus(
+    uint32_t now_ms)
+{
+#if ((COMM_MODE == COMM_MODE_ETHERNET_ONLY) || \
+     (COMM_MODE == COMM_MODE_BOTH))
+
+    if ((uint32_t)(
+            now_ms -
+            comm_manager_last_ethernet_status_tx_tick)
+        >= ETHERNET_STATUS_PERIOD_MS) {
+
+        /*
+         * 지연 후 여러 packet을 burst 송신하지 않고
+         * 현재 시점부터 다시 주기를 잡는다.
+         */
+        comm_manager_last_ethernet_status_tx_tick =
+            now_ms;
+
+        CommManager_SendEthernetStatus();
+    }
+
+#else
+
+    (void)now_ms;
+
+#endif
+}
 
 /* =========================================
  * CAN Status
@@ -967,6 +1068,8 @@ void CommManager_Init(void)
     comm_manager_state.last_estop_source_mask =
         0U;
 
+    comm_manager_last_ethernet_status_tx_tick =
+        HAL_GetTick();
 
     comm_manager_last_can_status_tx_tick =
         HAL_GetTick();
@@ -1100,8 +1203,12 @@ void CommManager_Update(void)
 
 
     /* =====================================
-     * 5. CAN Status
+     * 5. Status TX
      * ===================================== */
+
+    CommManager_ServiceEthernetStatus(
+        now_ms
+    );
 
     CommManager_ServiceCanStatus(
         now_ms
