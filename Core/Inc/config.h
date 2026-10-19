@@ -129,7 +129,7 @@
 #define ETHERNET_STATUS_TIMESTAMP_OFFSET    2U // Byte 2~5: Measurement timestamp [ms]
 #define ETHERNET_STATUS_DEST_IP             "10.177.21.1"
 #define ETHERNET_STATUS_STEER_SCALE         100.0f // 0.01 deg/LSB, raw = deg × 100
-
+#define ETHERNET_STATUS_PERIOD_MS           20U
 
 
 /* =========================================
