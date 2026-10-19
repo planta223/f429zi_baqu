@@ -299,8 +299,9 @@ static bool CommManager_ApplyTarget(
     float steering_deg,
     CommManager_Source_t source)
 {
-    const bool is_pc_command =
-        (source == COMM_SOURCE_ETHERNET_PC);
+    const bool is_homing_source =
+        (source == COMM_SOURCE_ETHERNET_PC) ||
+        (source == COMM_SOURCE_ETHERNET_ASMS);
 
     if (Encoder_IsInitialized() == 0U) {
         Control_Disable();
@@ -314,11 +315,11 @@ static bool CommManager_ApplyTarget(
 
     /*
      * 이 경로를 공통으로 사용하므로
-     * ASMS / CAN도 중앙 복귀 전에는 차단된다.
+     * 중앙 복귀 전에는 PC / ASMS의 0도만 허용한다.
      */
     if (!Homing_CheckCommand(
             steering_deg,
-            is_pc_command)) {
+            is_homing_source)) {
         return false;
     }
 
@@ -336,7 +337,7 @@ static bool CommManager_ApplyTarget(
 
     Homing_OnTargetApplied(
         steering_deg,
-        is_pc_command);
+        is_homing_source);
 
     return true;
 }
@@ -509,16 +510,25 @@ static void CommManager_ProcessAsms(void)
      * ===================================== */
 
     case COMM_STEER_MODE_MANUAL:
+        steering_deg =
+            CommManager_AsmsRawToSteeringDeg(
+                packet.steer_raw
+            );
+
+        if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
+            ETHERNET_TIMEOUT_MS) {
+            break;
+        }
+
+        /* 거부된 명령은 기존 제어 모드도 변경하지 않는다. */
+        if (!Homing_CheckCommand(steering_deg, true)) {
+            break;
+        }
 
         comm_manager_state.mode =
             COMM_STEER_MODE_MANUAL;
 
         LED_RED_OFF();
-        
-        steering_deg =
-            CommManager_AsmsRawToSteeringDeg(
-                packet.steer_raw
-            );
 
 
         if (CommManager_ApplyTarget(
@@ -591,6 +601,22 @@ static void CommManager_ProcessPc(void)
     }
 
 
+    /* 오래된 패킷으로 최초 복귀를 시작하지 않는다. */
+    if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
+        ETHERNET_TIMEOUT_MS) {
+        return;
+    }
+
+    steering_deg =
+        CommManager_PcRawToSteeringDeg(packet.steer_raw);
+
+    /* 복귀 전 PC 0도는 MANUAL에서도 허용하되 ESTOP은 해제하지 않는다. */
+    if (!Homing_IsReady() &&
+        steering_deg == 0.0f &&
+        comm_manager_state.mode != COMM_STEER_MODE_ESTOP) {
+        comm_manager_state.mode = COMM_STEER_MODE_AUTO;
+    }
+
     #if PC_ALLOW_AUTO_ENTRY
 
         /*
@@ -618,15 +644,6 @@ static void CommManager_ProcessPc(void)
 
         return;
     }
-
-    /* 오래된 패킷으로 최초 복귀를 시작하지 않는다. */
-    if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
-        ETHERNET_TIMEOUT_MS) {
-        return;
-    }
-
-    steering_deg =
-        CommManager_PcRawToSteeringDeg(packet.steer_raw);
 
     if (CommManager_ApplyTarget(
             steering_deg,

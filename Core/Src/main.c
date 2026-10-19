@@ -170,17 +170,23 @@ int main(void)
               CommManager_State_t comm_state =
                   CommManager_GetState();
 
-              const bool pc_command_valid =
-                  (comm_state.mode == COMM_STEER_MODE_AUTO) &&
-                  (comm_state.active_source ==
-                      COMM_SOURCE_ETHERNET_PC) &&
+              const bool source_valid =
+                  ((comm_state.mode == COMM_STEER_MODE_AUTO) &&
+                   (comm_state.active_source ==
+                       COMM_SOURCE_ETHERNET_PC)) ||
+                  ((comm_state.mode == COMM_STEER_MODE_MANUAL) &&
+                   (comm_state.active_source ==
+                       COMM_SOURCE_ETHERNET_ASMS));
+
+              const bool command_valid =
+                  source_valid &&
                   (comm_state.ethernet_timeout == 0U) &&
                   ((uint32_t)(
                       HAL_GetTick() -
                       comm_state.last_valid_ethernet_tick)
                       <= ETHERNET_TIMEOUT_MS);
 
-              Homing_Update(pc_command_valid);
+              Homing_Update(command_valid);
           }
       }
 

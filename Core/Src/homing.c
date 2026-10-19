@@ -26,11 +26,11 @@
 /* Homing_Init() 이전에는 명령을 제한한다. */
 static Homing_State_t homing_state = HOMING_STATE_WAIT_ZERO;
 
-static bool Homing_IsPcZero(
+static bool Homing_IsZeroCommand(
     float steering_deg,
-    bool is_pc_command)
+    bool is_homing_source)
 {
-    return is_pc_command &&
+    return is_homing_source &&
            isfinite(steering_deg) &&
            (steering_deg == 0.0f);
 }
@@ -46,7 +46,7 @@ void Homing_Init(void)
 
 bool Homing_CheckCommand(
     float steering_deg,
-    bool is_pc_command)
+    bool is_homing_source)
 {
     if (!isfinite(steering_deg)) {
         return false;
@@ -58,10 +58,10 @@ bool Homing_CheckCommand(
 
     case HOMING_STATE_WAIT_ZERO:
     case HOMING_STATE_MOVING:
-        /* 중앙 복귀 전에는 PC의 정확한 0도만 허용. */
-        return Homing_IsPcZero(
+        /* 중앙 복귀 전에는 PC / ASMS의 해석된 0도만 허용. */
+        return Homing_IsZeroCommand(
             steering_deg,
-            is_pc_command);
+            is_homing_source);
 
     default:
         return false;
@@ -70,15 +70,15 @@ bool Homing_CheckCommand(
 
 void Homing_OnTargetApplied(
     float steering_deg,
-    bool is_pc_command)
+    bool is_homing_source)
 {
     if (homing_state != HOMING_STATE_WAIT_ZERO) {
         return;
     }
 
-    if (!Homing_IsPcZero(
+    if (!Homing_IsZeroCommand(
             steering_deg,
-            is_pc_command)) {
+            is_homing_source)) {
         return;
     }
 
@@ -89,7 +89,7 @@ void Homing_OnTargetApplied(
     homing_state = HOMING_STATE_MOVING;
 }
 
-void Homing_Update(bool pc_command_valid)
+void Homing_Update(bool command_valid)
 {
     Control_State_t control_state;
 
@@ -102,7 +102,7 @@ void Homing_Update(bool pc_command_valid)
      * 완료 처리하지 않는다.
      * 상태와 encoder 좌표는 유지한다.
      */
-    if (!pc_command_valid ||
+    if (!command_valid ||
         Encoder_IsInitialized() == 0U ||
         SVON_IsEnabled() == 0U) {
         return;
