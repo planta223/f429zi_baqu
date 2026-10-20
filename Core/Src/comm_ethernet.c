@@ -288,19 +288,6 @@ static void CommEthernet_ParsePcPacket(
      * latest-wins
      */
     comm_eth_pc_pending = true;
-
-
-    /*
-     * PC E-Stop은 sticky 처리.
-     *
-     * E-Stop 효과 적용은 manager 책임.
-     */
-    if ((comm_eth_pc_packet.misc &
-         ETHERNET_PC_MISC_ESTOP_MASK) != 0U) {
-
-        comm_eth_estop_pending_mask |=
-            COMM_ETHERNET_ESTOP_PC;
-    }
 }
 
 

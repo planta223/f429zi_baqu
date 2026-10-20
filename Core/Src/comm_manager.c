@@ -576,38 +576,23 @@ static void CommManager_ProcessPc(void)
     }
 
 
-    /*
-     * E-Stop packet 자체가 mailbox에 남아 있을 수도 있으므로
-     * 여기서도 한 번 더 방어한다.
-     */
-    if ((packet.misc &
-         ETHERNET_PC_MISC_ESTOP_MASK) != 0U) {
+    #if PC_ALLOW_AUTO_ENTRY
 
-        CommManager_ApplyEmergency(
-            COMM_ESTOP_SOURCE_ETHERNET_PC
-        );
+        /*
+        * ASMS 없이 PC 단독 테스트.
+        *
+        * NONE 상태에서만 AUTO 진입 가능.
+        *
+        * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
+        */
+        if (comm_manager_state.mode ==
+            COMM_STEER_MODE_NONE) {
 
-        return;
-    }
+            comm_manager_state.mode =
+                COMM_STEER_MODE_AUTO;
+        }
 
-
-#if PC_ALLOW_AUTO_ENTRY
-
-    /*
-     * ASMS 없이 PC 단독 테스트.
-     *
-     * NONE 상태에서만 AUTO 진입 가능.
-     *
-     * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
-     */
-    if (comm_manager_state.mode ==
-        COMM_STEER_MODE_NONE) {
-
-        comm_manager_state.mode =
-            COMM_STEER_MODE_AUTO;
-    }
-
-#endif
+    #endif
 
 
     /*

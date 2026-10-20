@@ -119,8 +119,8 @@
 #define ETHERNET_PC_PACKET_SIZE           9U
 #define ETHERNET_PC_STEER_OFFSET          0U // Byte 0,1,2,3
 #define ETHERNET_PC_SPEED_OFFSET          4U // Byte 4,5,6,7. 사용 안함.
-#define ETHERNET_PC_MISC_OFFSET           8U // Byte 8
-#define ETHERNET_PC_MISC_ESTOP_MASK       0x80U // Byte 8(MISC)의 bit 7(MSB): E-Stop
+#define ETHERNET_PC_MISC_OFFSET           8U // Byte 8. 사용 안함.
+#define ETHERNET_PC_MISC_ESTOP_MASK       0x80U // Byte 8(MISC)의 bit 7(MSB): Brake.
 #define ETHERNET_PC_IP_LAST_OCTET         1U // 10.177.21.1
 
 /* Ethernet steering status - TX */
