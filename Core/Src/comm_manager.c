@@ -18,6 +18,7 @@
 #include "svon.h"
 #include "config.h"
 #include "led.h"
+#include "homing.h"
 
 #include "main.h"
 
@@ -294,49 +295,51 @@ static int16_t CommManager_SteeringDegToCanRaw(
  * Control application
  * ========================================= */
 
-static void CommManager_ApplyTarget(
+static bool CommManager_ApplyTarget(
     float steering_deg,
     CommManager_Source_t source)
 {
-    /*
-     * Encoder feedback이 없으면 폐루프 조향 금지.
-     * Fail-closed.
-     */
-    if (Encoder_IsInitialized() == 0U) {
+    const bool is_homing_source =
+        (source == COMM_SOURCE_ETHERNET_PC) ||
+        (source == COMM_SOURCE_ETHERNET_ASMS);
 
+    if (Encoder_IsInitialized() == 0U) {
         Control_Disable();
         SVON_Disable();
 
         comm_manager_state.active_source =
             COMM_SOURCE_NONE;
 
-        return;
+        return false;
     }
 
     /*
-     * 실제 최종 steering limit은
-     * Control_SetTargetSteeringDeg()에서 한 번 더 clamp된다.
+     * 이 경로를 공통으로 사용하므로
+     * 중앙 복귀 전에는 PC / ASMS의 0도만 허용한다.
      */
+    if (!Homing_CheckCommand(
+            steering_deg,
+            is_homing_source)) {
+        return false;
+    }
+
     Control_SetTargetSteeringDeg(steering_deg);
 
-
-    /*
-     * 정상적인 유효 조향명령이 들어오면 Servo ON.
-     */
     if (SVON_IsEnabled() == 0U) {
         SVON_Enable();
     }
 
-
-    /*
-     * Control enable
-     */
     if (Control_IsEnabled() == 0U) {
         Control_Enable();
     }
 
-
     comm_manager_state.active_source = source;
+
+    Homing_OnTargetApplied(
+        steering_deg,
+        is_homing_source);
+
+    return true;
 }
 
 
@@ -507,27 +510,34 @@ static void CommManager_ProcessAsms(void)
      * ===================================== */
 
     case COMM_STEER_MODE_MANUAL:
-
-        comm_manager_state.mode =
-            COMM_STEER_MODE_MANUAL;
-
-        LED_RED_OFF();
-        
         steering_deg =
             CommManager_AsmsRawToSteeringDeg(
                 packet.steer_raw
             );
 
+        if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
+            ETHERNET_TIMEOUT_MS) {
+            break;
+        }
 
-        CommManager_ApplyTarget(
-            steering_deg,
-            COMM_SOURCE_ETHERNET_ASMS
-        );
+        /* 거부된 명령은 기존 제어 모드도 변경하지 않는다. */
+        if (!Homing_CheckCommand(steering_deg, true)) {
+            break;
+        }
+
+        comm_manager_state.mode =
+            COMM_STEER_MODE_MANUAL;
+
+        LED_RED_OFF();
 
 
-        CommManager_MarkEthernetValid(
-            packet.rx_tick_ms
-        );
+        if (CommManager_ApplyTarget(
+                steering_deg,
+                COMM_SOURCE_ETHERNET_ASMS)) {
+
+            CommManager_MarkEthernetValid(
+                packet.rx_tick_ms);
+        }
 
         break;
 
@@ -591,23 +601,39 @@ static void CommManager_ProcessPc(void)
     }
 
 
-#if PC_ALLOW_AUTO_ENTRY
-
-    /*
-     * ASMS 없이 PC 단독 테스트.
-     *
-     * NONE 상태에서만 AUTO 진입 가능.
-     *
-     * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
-     */
-    if (comm_manager_state.mode ==
-        COMM_STEER_MODE_NONE) {
-
-        comm_manager_state.mode =
-            COMM_STEER_MODE_AUTO;
+    /* 오래된 패킷으로 최초 복귀를 시작하지 않는다. */
+    if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
+        ETHERNET_TIMEOUT_MS) {
+        return;
     }
 
-#endif
+    steering_deg =
+        CommManager_PcRawToSteeringDeg(packet.steer_raw);
+
+    /* 복귀 전 PC 0도는 MANUAL에서도 허용하되 ESTOP은 해제하지 않는다. */
+    if (!Homing_IsReady() &&
+        steering_deg == 0.0f &&
+        comm_manager_state.mode != COMM_STEER_MODE_ESTOP) {
+        comm_manager_state.mode = COMM_STEER_MODE_AUTO;
+    }
+
+    #if PC_ALLOW_AUTO_ENTRY
+
+        /*
+        * ASMS 없이 PC 단독 테스트.
+        *
+        * NONE 상태에서만 AUTO 진입 가능.
+        *
+        * MANUAL / ESTOP은 PC가 덮어쓰지 않는다.
+        */
+        if (comm_manager_state.mode ==
+            COMM_STEER_MODE_NONE) {
+
+            comm_manager_state.mode =
+                COMM_STEER_MODE_AUTO;
+        }
+
+    #endif
 
 
     /*
@@ -619,22 +645,13 @@ static void CommManager_ProcessPc(void)
         return;
     }
 
+    if (CommManager_ApplyTarget(
+            steering_deg,
+            COMM_SOURCE_ETHERNET_PC)) {
 
-    steering_deg =
-        CommManager_PcRawToSteeringDeg(
-            packet.steer_raw
-        );
-
-
-    CommManager_ApplyTarget(
-        steering_deg,
-        COMM_SOURCE_ETHERNET_PC
-    );
-
-
-    CommManager_MarkEthernetValid(
-        packet.rx_tick_ms
-    );
+        CommManager_MarkEthernetValid(
+            packet.rx_tick_ms);
+    }
 }
 
 

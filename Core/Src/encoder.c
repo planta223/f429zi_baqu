@@ -70,10 +70,15 @@ void Encoder_Init(void)
     encoder.sample_tick_ms = HAL_GetTick();
     encoder.prev_raw_count = encoder.raw_count;
     encoder.delta_count = 0;
-    encoder.total_count = 0;
 
-    encoder.motor_deg = 0.0f;
-    encoder.steering_deg = 0.0f;
+    #if STEERING_BOOT_CENTERING_ENABLE
+        encoder.total_count = ENCODER_BOOT_INITIAL_COUNT;
+    #else
+        encoder.total_count = 0;
+    #endif
+        encoder.motor_deg = Encoder_CountToMotorDeg(encoder.total_count);
+        encoder.steering_deg = Encoder_MotorDegToSteeringDeg(encoder.motor_deg);
+
     encoder.motor_velocity_dps = 0.0f;
     encoder.steering_velocity_dps = 0.0f;
 
@@ -132,11 +137,19 @@ void Encoder_Reset(void)
     
     encoder.raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
     encoder.prev_raw_count = (uint32_t)ENCODER_COUNTER_CENTER;
-    encoder.delta_count = 0;
-    encoder.total_count = 0;
+    
+    #if STEERING_BOOT_CENTERING_ENABLE
+        encoder.total_count = ENCODER_BOOT_INITIAL_COUNT;
+    #else
+        encoder.total_count = 0;
+    #endif
 
-    encoder.motor_deg = 0.0f;
-    encoder.steering_deg = 0.0f;
+    encoder.motor_deg =
+        Encoder_CountToMotorDeg(encoder.total_count);
+
+    encoder.steering_deg =
+        Encoder_MotorDegToSteeringDeg(encoder.motor_deg);
+    
     encoder.motor_velocity_dps = 0.0f;
     encoder.steering_velocity_dps = 0.0f;
 }

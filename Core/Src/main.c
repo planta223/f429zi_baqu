@@ -37,6 +37,7 @@
 #include "comm_ethernet.h"
 #include "comm_manager.h"
 #include "led.h"
+#include "homing.h"
 
 /* USER CODE END Includes */
 
@@ -120,7 +121,8 @@ int main(void)
   Control_Init();
   SVON_Init();
 
-  Encoder_Reset();
+  Homing_Init();
+
   Control_Reset();
   Control_SetTargetSteeringDeg(0.0f);
 
@@ -163,6 +165,29 @@ int main(void)
 
           Encoder_Update();
           Control_Update();
+
+          {
+              CommManager_State_t comm_state =
+                  CommManager_GetState();
+
+              const bool source_valid =
+                  ((comm_state.mode == COMM_STEER_MODE_AUTO) &&
+                   (comm_state.active_source ==
+                       COMM_SOURCE_ETHERNET_PC)) ||
+                  ((comm_state.mode == COMM_STEER_MODE_MANUAL) &&
+                   (comm_state.active_source ==
+                       COMM_SOURCE_ETHERNET_ASMS));
+
+              const bool command_valid =
+                  source_valid &&
+                  (comm_state.ethernet_timeout == 0U) &&
+                  ((uint32_t)(
+                      HAL_GetTick() -
+                      comm_state.last_valid_ethernet_tick)
+                      <= ETHERNET_TIMEOUT_MS);
+
+              Homing_Update(command_valid);
+          }
       }
 
 	    HAL_IWDG_Refresh(&hiwdg);
