@@ -586,21 +586,6 @@ static void CommManager_ProcessPc(void)
     }
 
 
-    /*
-     * E-Stop packet 자체가 mailbox에 남아 있을 수도 있으므로
-     * 여기서도 한 번 더 방어한다.
-     */
-    if ((packet.misc &
-         ETHERNET_PC_MISC_ESTOP_MASK) != 0U) {
-
-        CommManager_ApplyEmergency(
-            COMM_ESTOP_SOURCE_ETHERNET_PC
-        );
-
-        return;
-    }
-
-
     /* 오래된 패킷으로 최초 복귀를 시작하지 않는다. */
     if ((uint32_t)(HAL_GetTick() - packet.rx_tick_ms) >
         ETHERNET_TIMEOUT_MS) {
