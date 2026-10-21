@@ -9,11 +9,46 @@
 #include "encoder.h"
 #include "motor.h"
 #include "config.h"
+#include "homing.h"
+
+#include "main.h" /* HAL_GetTick() 을 위해 */
 
 #include <math.h>
 
 static Control_PID_t pid;
 static Control_State_t control;
+
+// ==============================
+// home ramp 관련
+// ==============================
+
+static uint8_t homing_ramp_active = 0U;
+static uint32_t homing_ramp_start_ms = 0U;
+static float homing_ramp_start_motor_deg = 0.0f;
+
+static float Control_GetReferenceMotorDeg(void)
+{
+    uint32_t elapsed_ms;
+
+    if (homing_ramp_active == 0U) {
+        return control.target_motor_deg;
+    }
+
+    elapsed_ms = HAL_GetTick() - homing_ramp_start_ms;
+
+    if (elapsed_ms >= HOMING_RETURN_TIME_MS) {
+        homing_ramp_active = 0U;
+        return control.target_motor_deg; /* 최종 목표 0 */
+    }
+
+    return homing_ramp_start_motor_deg *
+           (1.0f - (float)elapsed_ms /
+                   (float)HOMING_RETURN_TIME_MS);
+}
+
+// ==============================
+// 기존 로직
+// ==============================
 
 static void Control_UpdateTuningParams(void)
 {
@@ -154,6 +189,8 @@ void Control_Init(void)
     control.integral = 0.0f;
     control.prev_error = 0.0f;
 
+    homing_ramp_active = 0U;
+
     Motor_Stop();
 }
 
@@ -167,7 +204,16 @@ void Control_Enable(void)
     control.current_motor_deg = Encoder_GetMotorDeg();
     control.current_steering_deg = Encoder_GetSteeringDeg();
 
-    control.error_motor_deg = control.target_motor_deg - control.current_motor_deg;
+    /* homing */
+    homing_ramp_active =
+        (!Homing_IsReady() && control.target_motor_deg == 0.0f)
+        ? 1U : 0U;
+
+    homing_ramp_start_motor_deg = control.current_motor_deg;
+    homing_ramp_start_ms = HAL_GetTick();
+
+    control.error_motor_deg =
+        Control_GetReferenceMotorDeg() - control.current_motor_deg;
     control.prev_error = control.error_motor_deg;
 }
 
@@ -178,11 +224,15 @@ void Control_Disable(void)
     control.integral = 0.0f;
     control.reached = 0U;
 
+    homing_ramp_active = 0U;
+
     Motor_Stop();
 }
 
 void Control_Reset(void)
 {
+    homing_ramp_active = 0U;
+
     control.target_steering_deg = 0.0f;
     control.target_motor_deg = 0.0f;
 
@@ -214,7 +264,8 @@ void Control_SetTargetSteeringDeg(float steering_deg)
     control.current_motor_deg = Encoder_GetMotorDeg();
     control.current_steering_deg = Encoder_GetSteeringDeg();
 
-    control.error_motor_deg = control.target_motor_deg - control.current_motor_deg;
+    control.error_motor_deg =
+        Control_GetReferenceMotorDeg() - control.current_motor_deg;
 }
 
 void Control_Update(void)
@@ -227,7 +278,8 @@ void Control_Update(void)
 
     control.current_motor_deg = Encoder_GetMotorDeg();
     control.current_steering_deg = Encoder_GetSteeringDeg();
-    control.error_motor_deg = control.target_motor_deg - control.current_motor_deg;
+    control.error_motor_deg =
+        Control_GetReferenceMotorDeg() - control.current_motor_deg;
 
     if (control.enabled == 0U) {
         control.output_freq_hz = 0.0f;
@@ -248,7 +300,7 @@ void Control_Update(void)
      * MOTOR_MIN_FREQ_HZ에 의해 작은 출력이 최소 주파수로 강제되는 것을 방지한다.
      */
     if (abs_error <= reached_band_motor_deg) {
-        control.reached = 1U;
+        control.reached = (homing_ramp_active == 0U) ? 1U : 0U; // homing
         control.output_freq_hz = 0.0f;
         control.integral = 0.0f;
 

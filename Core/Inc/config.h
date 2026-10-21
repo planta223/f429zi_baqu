@@ -169,5 +169,6 @@
 // 1: 좌측 끝 부팅 후 PC 0도 명령으로 중앙 복귀
 // 0: 기존 방식, 부팅 위치를 0도로 사용
 #define STEERING_BOOT_CENTERING_ENABLE    1U
+#define HOMING_RETURN_TIME_MS 5000U // 초기 중앙 복귀 시간
 
 #endif /* INC_CONFIG_H_ */
