@@ -87,10 +87,16 @@ static uint32_t CommEthernet_ReadUint32LE(
 }
 
 
-static int32_t CommEthernet_ReadInt32LE(
+static float CommEthernet_ReadFloat32LE(
     const uint8_t *buf)
 {
-    return (int32_t)CommEthernet_ReadUint32LE(buf);
+    uint32_t bits = CommEthernet_ReadUint32LE(buf);
+    float value;
+
+    _Static_assert(sizeof(float) == sizeof(uint32_t),
+                   "PC steering requires 32-bit float");
+    memcpy(&value, &bits, sizeof(value));
+    return value;
 }
 
 /* =========================================
@@ -259,10 +265,10 @@ static void CommEthernet_ParsePcPacket(
     now_ms = HAL_GetTick();
 
     /*
-     * Byte 0~3
+     * Byte 0~3: little-endian float32 steering [deg]
      */
     comm_eth_pc_packet.steer_raw =
-        CommEthernet_ReadInt32LE(
+        CommEthernet_ReadFloat32LE(
             &buf[ETHERNET_PC_STEER_OFFSET]
         );
 

@@ -183,10 +183,10 @@ static float CommManager_AsmsRawToSteeringDeg(
  * ========================================= */
 
 static float CommManager_PcRawToSteeringDeg(
-    int32_t raw)
+    float raw)
 {
     return
-        (float)raw *
+        raw *
         PC_STEER_SCALE *
         (float)PC_STEER_POLARITY;
 }
@@ -594,6 +594,11 @@ static void CommManager_ProcessPc(void)
 
     steering_deg =
         CommManager_PcRawToSteeringDeg(packet.steer_raw);
+
+    /* NaN / Inf must not change mode or renew the valid-command timeout. */
+    if (!isfinite(steering_deg)) {
+        return;
+    }
 
     /* 복귀 전 PC 0도는 MANUAL에서도 허용하되 ESTOP은 해제하지 않는다. */
     if (!Homing_IsReady() &&

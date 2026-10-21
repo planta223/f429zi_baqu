@@ -31,7 +31,7 @@ typedef struct {
 
 /* PC packet - RX */
 typedef struct {
-    int32_t steer_raw;
+    float steer_raw;        // Little-endian IEEE-754 float32 steering [deg]
     uint32_t speed_raw;
     uint8_t misc;
     uint32_t rx_tick_ms;
