@@ -19,14 +19,14 @@
 /* =========================================
  * Hardware constants
  * ========================================= */
-#define STEERING_GEAR_RATIO            89.2503f   // 감속비
+#define STEERING_GEAR_RATIO            125.92635f   // 감속비
 #define ENCODER_COUNT_PER_MOTOR_REV    12000.0f   // 1회전당 카운트 (실측 후 확정됨)
 #define MOTOR_DRIVER_MAX_FREQ_HZ       1000000U   // 드라이브 line-driver 입력 사양 상한
 #define ENCODER_COUNT_POLARITY         1 	      // 엔코더 방향 (실측 후 확정됨)
 #define MOTOR_DIR_ACTIVE_HIGH_FOR_CW   1 		  // 모터회전 방향 (실측 후 확정됨)
 
-#define STEERING_MECHANICAL_MAX_DEG    26.47f     // 조향축 기계적 양의 한계 [deg]
-#define STEERING_MECHANICAL_MIN_DEG   -26.47f     // 조향축 기계적 음의 한계 [deg]
+#define STEERING_MECHANICAL_MAX_DEG    18.7606125f     // 조향축 기계적 양의 한계 [deg]
+#define STEERING_MECHANICAL_MIN_DEG   -18.7606125f     // 조향축 기계적 음의 한계 [deg]
 
 
 /* =========================================
@@ -53,9 +53,9 @@
 /* =========================================
  * control.c : 수행
  * ========================================= */
-#define CONTROL_TARGET_MAX_STEERING_DEG       24.0f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
-#define CONTROL_TARGET_MIN_STEERING_DEG      -24.0f      // 제어 목표 조향각 하한 [deg]
-#define CONTROL_REACHED_BAND_STEERING_DEG     0.10f       // 도달 판정 조향각 오차 범위 [deg]
+#define CONTROL_TARGET_MAX_STEERING_DEG       17.01f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
+#define CONTROL_TARGET_MIN_STEERING_DEG      -17.01f      // 제어 목표 조향각 하한 [deg]
+#define CONTROL_REACHED_BAND_STEERING_DEG     0.070875f   // 도달 판정 조향각 오차 범위 [deg]
 
 #define CONTROL_DEFAULT_KP                   400.0f     // P 게인 [Hz/motor_deg]
 #define CONTROL_DEFAULT_KI                     0.0f       // I 게인
@@ -81,7 +81,7 @@
 #define CAN_TIMEOUT_POLICY              COMM_TIMEOUT_POLICY_RELEASE
 
 /* Ethernet ASMS Command */
-#define ASMS_STEER_SCALE                24.0f
+#define ASMS_STEER_SCALE                17.01f
 #define ASMS_STEER_POLARITY            -1
 #define ASMS_ADC_MIN_RAW               (-2048)
 #define ASMS_ADC_CENTER_RAW             0
