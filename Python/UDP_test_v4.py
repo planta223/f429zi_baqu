@@ -5,7 +5,7 @@ Current parameters are read from Core/Inc/config.h. If it is unavailable,
 the bundled defaults match the 2026-10-22 steering configuration.
 UDP_status_rx.py can run in another console; this sender never binds :5002.
 
-PC: 9 bytes, <fiB (float32 steering degrees, int32 speed=0, uint8 misc).
+PC: 9 bytes, <ffB (float32 steering degrees, float32 speed=0, uint8 misc).
 ASMS: unchanged 5 bytes, <BHh (mode, speed=0, int16 joystick raw).
 PC float32 requires matching firmware; UDP_test_v3.py uses the old int32 format.
 The PC misc brake bit is not a steering E-Stop; ASMS mode 3 is the E-Stop path.
@@ -127,7 +127,7 @@ def pc_packet(params, degrees, estop=False):
     unit = params.pc_scale * params.pc_polarity
     raw = requested / unit
     try:
-        packet = struct.pack("<fiB", raw, 0, 0x80 if estop else 0)
+        packet = struct.pack("<ffB", raw, 0.0, 0x80 if estop else 0)
     except (OverflowError, struct.error) as exc:
         raise ValueError("Steering value cannot be represented as float32") from exc
     wire_raw = struct.unpack_from("<f", packet)[0]
@@ -470,7 +470,7 @@ def main():
         print(f"[CONFIG ERROR] {exc}")
         return 1
     print("STM32 UDP steering debugger v4 (PC float32 / ASMS int16)")
-    print("[PROTOCOL] PC=<fiB, 9 bytes; requires float32 firmware. ASMS=<BHh, 5 bytes.")
+    print("[PROTOCOL] PC=<ffB, 9 bytes; requires float32 firmware. ASMS=<BHh, 5 bytes.")
     print(f"[CONFIG] {config_source}")
     print(f"[LIMITS] {params.steering_min_deg:g} .. {params.steering_max_deg:g} deg; "
           f"ASMS scale={params.asms_scale:g}, polarity={params.asms_polarity:+d}")
