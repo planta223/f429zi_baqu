@@ -40,7 +40,7 @@
  * ========================================= */
 #define ENCODER_COUNTER_PERIOD         4294967295UL // 32-bit TIM period: 0 ~ 4294967295
 #define ENCODER_COUNTER_CENTER         2147483648UL // center of 32-bit counter range
-#define ENCODER_BOOT_INITIAL_COUNT     79000LL      // 좌측 물리 끝에서만 부팅한다는 전제
+#define ENCODER_BOOT_INITIAL_COUNT     79100LL      // 좌측 물리 끝에서만 부팅한다는 전제
 
 /* =========================================
  * motor.c

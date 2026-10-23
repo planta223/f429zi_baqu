@@ -1,0 +1,2 @@
+pc_time,sent,pc_sent,asms_sent,periodic_sent,one_shot_sent,errors,last_error,last_send_epoch,last_gap_ms,max_gap_ms,timeout_gaps,mode,target_deg,asms_raw,send_age_ms,worker_alive
+1792749793.96251,0,0,0,0,0,0,,,,0.0,0,idle,0.0,0,,True
