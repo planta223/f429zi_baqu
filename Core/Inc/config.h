@@ -40,7 +40,7 @@
  * ========================================= */
 #define ENCODER_COUNTER_PERIOD         4294967295UL // 32-bit TIM period: 0 ~ 4294967295
 #define ENCODER_COUNTER_CENTER         2147483648UL // center of 32-bit counter range
-#define ENCODER_BOOT_INITIAL_COUNT     79163LL      // 좌측 물리 끝에서만 부팅한다는 전제
+#define ENCODER_BOOT_INITIAL_COUNT     79000LL      // 좌측 물리 끝에서만 부팅한다는 전제
 
 /* =========================================
  * motor.c
@@ -55,7 +55,7 @@
  * ========================================= */
 #define CONTROL_TARGET_MAX_STEERING_DEG       17.01f      // 제어 목표 조향각 상한 [deg] (STEERING_MECHANICAL_MAX_DEG 이하로 설정할 것)
 #define CONTROL_TARGET_MIN_STEERING_DEG      -17.01f      // 제어 목표 조향각 하한 [deg]
-#define CONTROL_REACHED_BAND_STEERING_DEG     0.070875f   // 도달 판정 조향각 오차 범위 [deg]
+#define CONTROL_REACHED_BAND_STEERING_DEG     0.05f   // 도달 판정 조향각 오차 범위 [deg]
 
 #define CONTROL_DEFAULT_KP                   400.0f     // P 게인 [Hz/motor_deg]
 #define CONTROL_DEFAULT_KI                     0.0f       // I 게인
